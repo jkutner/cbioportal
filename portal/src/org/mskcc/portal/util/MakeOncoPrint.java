@@ -368,6 +368,45 @@ public class MakeOncoPrint {
         }
     }
 
+    /**
+     * Generates an OncoPrint in HTML.
+     * @param caseSets                  List of all Case Sets.
+     * @param caseSetId                 Selected Case Set ID.
+     * @param matrix                    Matrix of Genomic Events.
+     * @param numColumnsToShow          Number of Columns to Show.
+     * @param showAlteredColumns        Flag to show only altered columns.
+     * @param theOncoPrintSpecification The OncoPrint Spec. Object.
+     * @param dataSummary               Data Summary Object.
+     * @param out                       HTML Out.
+     * @param cellspacing               Cellspacing.
+     * @param cellpadding               Cellpadding.
+     * @param width                     Width.
+     * @param height                    Height.
+	 * @param includeCaseSetDescription Include case set description boolean.
+	 * @param includeLegend             Include legend boolean.
+     */
+    static void writeHTMLOncoPrint2(ArrayList<CaseList> caseSets, String caseSetId,
+									GeneticEvent matrix[][],
+									int numColumnsToShow, boolean showAlteredColumns,
+									OncoPrintSpecification theOncoPrintSpecification,
+									ProfileDataSummary dataSummary,
+									StringBuffer out,
+									int cellspacing, int cellpadding, int width, int height,
+									boolean includeCaseSetDescription,
+									boolean includeLegend) {
+
+		int canvasWidth = 300;
+		int canvasHeight = 300;
+
+        out.append("<script type=\"text/javascript\" src=\"js/jquery.min.js\"></script>\n" +
+				   "<script type=\"text/javascript\" src=\"js/html5-canvas-oncoprint.js\"></script>") ;
+
+		out.append("<canvas id=\"oncoprintCanvas\" width=\"" + canvasWidth + "\" height=\"" + canvasHeight + "\">" +
+				   "Your browser does not support HTML5 Canvas, please upgrade your browser." +
+				   "</canvas>");
+
+	}
+
     // pluralize a count + name; dumb, because doesn't consider adding 'es' to pluralize
     static String pluralize(int num, String s) {
         if (num == 1) {
