@@ -151,7 +151,7 @@ public class MakeOncoPrint {
                 int width = 6;
                 int height = 17;
 
-                writeHTMLOncoPrint(caseSets, caseSetId, matrix, numColumnsToShow, showAlteredColumns,
+                writeHTMLOncoPrint2(caseSets, caseSetId, matrix, numColumnsToShow, showAlteredColumns,
 								   theOncoPrintSpecParserOutput.getTheOncoPrintSpecification(), dataSummary,
 								   out, spacing, padding, width, height, includeCaseSetDescription,
 								   includeLegend);
@@ -395,16 +395,118 @@ public class MakeOncoPrint {
 									boolean includeCaseSetDescription,
 									boolean includeLegend) {
 
-		int canvasWidth = 300;
-		int canvasHeight = 300;
+		double scaleFactor = 1.0;
 
-        out.append("<script type=\"text/javascript\" src=\"js/jquery.min.js\"></script>\n" +
-				   "<script type=\"text/javascript\" src=\"js/html5-canvas-oncoprint.js\"></script>") ;
+        out.append("<script type=\"text/javascript\" src=\"js/jquery.min.js\"></script>\n");
+        out.append("<script type=\"text/javascript\" src=\"js/html5-canvas-oncoprint.js\"></script>\n");
 
-		out.append("<canvas id=\"oncoprintCanvas\" width=\"" + canvasWidth + "\" height=\"" + canvasHeight + "\">" +
-				   "Your browser does not support HTML5 Canvas, please upgrade your browser." +
-				   "</canvas>");
+		// border for testing
+		//out.append("<style type=\"text/css\">\ncanvas { border: 1px solid black; }\n</style>\n");
 
+		// setup oncoprint div 
+        out.append("<div class=\"oncoprint\">\n");
+        if (includeCaseSetDescription) {
+            for (CaseList caseSet : caseSets) {
+                if (caseSetId.equals(caseSet.getStableId())) {
+                    out.append(
+                            "<p>Case Set: " + caseSet.getName()
+                                    + ":  " + caseSet.getDescription() + "</p>");
+                }
+            }
+        }
+
+        // stats on pct alteration
+        out.append("<p>Altered in " + dataSummary.getNumCasesAffected() + " (" +
+                alterationValueToString(dataSummary.getPercentCasesAffected())
+                + ") of cases." + "</p>");
+
+        // output table header
+        out.append("\n<table cellspacing='" + cellspacing +
+				   "' cellpadding='" + cellpadding +
+				   "'>\n" + "<thead>\n");
+
+        int columnWidthOfLegend = 80;
+        //  heading that indicates columns are cases
+        // span multiple columns like legend
+        String caseHeading;
+        int numCases = matrix[0].length;
+        String rightArrow =  " &rarr;";
+        if (showAlteredColumns) {
+            caseHeading = pluralize(dataSummary.getNumCasesAffected(), " case")
+                    + " with altered genes, out of " + pluralize(numCases, " total case") + rightArrow;
+        } else {
+            caseHeading = "All " + pluralize(numCases, " case") + rightArrow;
+        }
+
+        out.append("\n<tr><th></th><th valign='bottom' width=\"50\">Total altered</th>\n<th colspan='"
+                + columnWidthOfLegend + "' align='left'>" + caseHeading + "</th>\n</tr>\n");
+        out.append("</thead>\n");
+		out.append("</table>\n");
+		out.append("</div>\n");
+
+		//out.append("<style type=\"text/css\">\ncanvas { border: 1px solid black; }\n</style>\n");
+		out.append("<div class=\"oncoprint\">\n");
+		out.append("<table cellspacing='" + cellspacing +
+				   "' cellpadding='" + cellpadding + "'>\n");
+        for (int i = 0; i < matrix.length; i++) {
+            GeneticEvent rowEvent = matrix[i][0];
+			String gene = rowEvent.getGene().toUpperCase();
+
+            // new row
+            out.append("<tr>");
+
+            // output cell with gene name, CSS does left justified
+            out.append("<td nowrap=\"nowrap\">" + gene + "</td>\n");
+
+            // output total % altered, right justified
+            out.append("<td style=\" text-align: right\">");
+            out.append(alterationValueToString(dataSummary.getPercentCasesWhereGeneIsAltered(rowEvent.getGene())));
+            out.append("</td>\n");
+		}
+		out.append("</table>\n");
+		out.append("</div>\n");
+
+        out.append("<div id=\"oncoprintDiv\">\n");
+
+		// we want to create the canvas and draw
+		// the alterations when the DOM is ready
+        out.append("<script type=\"text/javascript\">\n"+
+				   "\t$(document).ready(function() {\n");
+
+		// make canvas
+		out.append("\t\tCreateCanvas(\"oncoprintDiv\", \"oncoprintCanvas\", " +
+				   matrix.length + ", " + numColumnsToShow + ", " + scaleFactor + ");\n");
+
+        for (int i = 0; i < matrix.length; i++) {
+            GeneticEvent rowEvent = matrix[i][0];
+			
+            // for each case
+            for (int j = 0; j < numColumnsToShow; j++) {
+                GeneticEvent event = matrix[i][j];
+                // get level of each datatype; concatenate to make image name
+                // color could later could be in configuration file
+                String cnaName = event.getCnaValue().name().toUpperCase();
+                String mrnaName = event.getMrnaValue().name().toUpperCase();
+				String mutationName = (event.isMutated()) ? "MUTATED" : "NORMAL";
+				String alterationSettings = cnaName + " | " + mrnaName + " | " + mutationName;
+				out.append("\t\tDrawAlteration(\"oncoprintCanvas\", " + i + ", " + j +
+						   ", " + alterationSettings + ", " + scaleFactor + ");\n");
+            }
+        }
+		out.append("});\n");
+		out.append("</script>\n");
+		out.append("</div>\n");
+
+        if (includeLegend) {
+			out.append("<div class=\"oncoprint\">\n");
+			out.append("<table cellspacing='" + cellspacing +
+					   "' cellpadding='" + cellpadding + "'>\n");
+            out.append("<tr>\n");
+            writeLegend(out, theOncoPrintSpecification.getUnionOfPossibleLevels(), 2,
+						columnWidthOfLegend, width, height, cellspacing, cellpadding, width, 0.75f);
+            out.append("</table>\n");
+            out.append("</div>\n");
+		}
 	}
 
     // pluralize a count + name; dumb, because doesn't consider adding 'es' to pluralize
