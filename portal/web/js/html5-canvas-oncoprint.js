@@ -89,8 +89,11 @@ function CreateCanvas(parentID, canvasID, numGenes, numSamples, scaleFactor) {
 		// we want enough space for each alteration w/padding.  remove padding on the right/bottom
 		var canvasHeight = numGenes * (ALTERATION_HEIGHT + ALTERATION_VERTICAL_PADDING) - ALTERATION_VERTICAL_PADDING;
 		var canvasWidth = numSamples * (ALTERATION_WIDTH + ALTERATION_HORIZONTAL_PADDING) - ALTERATION_HORIZONTAL_PADDING;
- 		var canvas = document.createElement('canvas');
-		canvas.setAttribute('id', canvasID);
+		var canvas = document.getElementById(canvasID);
+		if (canvas == null) {
+			canvas = document.createElement('canvas');
+			canvas.setAttribute('id', canvasID);
+		}
 		canvas.setAttribute('width', canvasWidth * scaleFactor);
 		canvas.setAttribute('height', canvasHeight * scaleFactor);
 		parentElement.appendChild(canvas);
@@ -122,9 +125,12 @@ function DrawAlteration(canvasID, row, column, alterationSettings, scaleFactor) 
 	}
 }
 
-/*
- * Draws a CNA alteration cell on the given canvas.
- */
+/*******************************************************************************
+//
+// The following functions are for internal use only.
+//
+*******************************************************************************/
+
 function DrawCNA(context, row, column, alterationSettings) {
 
 	if (alterationSettings & AMPLIFIED) {
@@ -172,7 +178,6 @@ function DrawMRNA(context, row, column, alterationSettings) {
 		context.fillStyle = NOTSHOWN_COLOR;
 	}
 	context.lineWidth = MRNA_RECT_WIREFRAME_THICKNESS;
-	// x, y, width, height
 	var x = GetXCoordinate(column);
 	var y = GetYCoordinate(row);
 	context.fillRect(x, y, ALTERATION_WIDTH, ALTERATION_HEIGHT);
