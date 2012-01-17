@@ -395,8 +395,6 @@ public class MakeOncoPrint {
 									boolean includeCaseSetDescription,
 									boolean includeLegend) {
 
-		double scaleFactor = 1.0;
-
         out.append("<script type=\"text/javascript\" src=\"js/jquery.min.js\"></script>\n");
         out.append("<script type=\"text/javascript\" src=\"js/html5-canvas-oncoprint.js\"></script>\n");
 
@@ -437,32 +435,9 @@ public class MakeOncoPrint {
         } else {
             caseHeading = "All " + pluralize(numCases, " case") + rightArrow;
         }
-
         out.append("\n<tr><th></th><th valign='bottom' width=\"50\">Total altered</th>\n<th colspan='"
                 + columnWidthOfLegend + "' align='left'>" + caseHeading + "</th>\n</tr>\n");
         out.append("</thead>\n");
-		out.append("</table>\n");
-		out.append("</div>\n");
-
-		//out.append("<style type=\"text/css\">\ncanvas { border: 1px solid black; }\n</style>\n");
-		out.append("<div class=\"oncoprint\">\n");
-		out.append("<table cellspacing='" + cellspacing +
-				   "' cellpadding='" + cellpadding + "'>\n");
-        for (int i = 0; i < matrix.length; i++) {
-            GeneticEvent rowEvent = matrix[i][0];
-			String gene = rowEvent.getGene().toUpperCase();
-
-            // new row
-            out.append("<tr>");
-
-            // output cell with gene name, CSS does left justified
-            out.append("<td nowrap=\"nowrap\">" + gene + "</td>\n");
-
-            // output total % altered, right justified
-            out.append("<td style=\" text-align: right\">");
-            out.append(alterationValueToString(dataSummary.getPercentCasesWhereGeneIsAltered(rowEvent.getGene())));
-            out.append("</td>\n");
-		}
 		out.append("</table>\n");
 		out.append("</div>\n");
 
@@ -474,11 +449,20 @@ public class MakeOncoPrint {
 				   "\t$(document).ready(function() {\n");
 
 		// make canvas
+		double scaleFactor = 1.0;
+		String longestLabel = MakeOncoPrint.getLongestLabel(matrix, dataSummary);
 		out.append("\t\tCreateCanvas(\"oncoprintDiv\", \"oncoprintCanvas\", " +
-				   matrix.length + ", " + numColumnsToShow + ", " + scaleFactor + ");\n");
+				   matrix.length + ", " + numColumnsToShow + ", " + "\""  + longestLabel + "\"" +
+				   ", " + scaleFactor + ");\n");
 
         for (int i = 0; i < matrix.length; i++) {
             GeneticEvent rowEvent = matrix[i][0];
+			String gene = rowEvent.getGene().toUpperCase();
+			String alterationValue =
+				alterationValueToString(dataSummary.getPercentCasesWhereGeneIsAltered(rowEvent.getGene()));
+
+			out.append("\t\tDrawLabel(\"oncoprintCanvas\", " + i + ", " + "\""  + gene + "\"" +
+					   ", " + "\"" + alterationValue + "\"" + ", " + scaleFactor + ");\n");
 			
             // for each case
             for (int j = 0; j < numColumnsToShow; j++) {
@@ -725,4 +709,34 @@ public class MakeOncoPrint {
         // TODO: throw exception
         return "shouldNotBeReached"; // never reached
     }
+
+	/**
+	 * Computes length in pixel of gene and % altered
+	 */
+	private static String getLongestLabel(GeneticEvent matrix[][], ProfileDataSummary dataSummary) {
+
+		// this font/size corresponds to .oncoprint td specified in global_portal.css
+		java.awt.image.BufferedImage image =
+			new java.awt.image.BufferedImage(100, 100, java.awt.image.BufferedImage.TYPE_INT_RGB);
+		java.awt.Font portalFont = new java.awt.Font("verdana", java.awt.Font.PLAIN, 12);
+		java.awt.FontMetrics fontMetrics = image.getGraphics().getFontMetrics(portalFont);
+		
+		int maxWidth = 0;
+		String longestLabel = null;
+        for (int lc = 0; lc < matrix.length; lc++) {
+            GeneticEvent rowEvent = matrix[lc][0];
+			String gene = rowEvent.getGene().toUpperCase();
+			String alterationValue =
+				alterationValueToString(dataSummary.getPercentCasesWhereGeneIsAltered(rowEvent.getGene()));
+			String label = gene + alterationValue;
+			int width = fontMetrics.stringWidth(label);
+			if (width > maxWidth) {
+				maxWidth = width;
+				longestLabel = label;
+			}
+		}
+
+		// outta here
+		return longestLabel;
+	}
 }

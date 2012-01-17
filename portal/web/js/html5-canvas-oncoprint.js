@@ -73,6 +73,13 @@ var MUTATION_RECT_WIDTH = ALTERATION_WIDTH - MRNA_RECT_WIREFRAME_THICKNESS;
 var MUTATION_RECT_HEIGHT = ALTERATION_HEIGHT * (1/3);
 var MUTATION_COLOR = '#008000'; // dark green
 
+// for gene - alteration labels
+var MAX_LABEL_LENGTH = 0;
+var LABEL_FONT       = 'normal 12px verdana'; // font used to render label
+var LABEL_SPACING    = '    '; // spaceing between gene and % genetic alteration
+var LABEL_PADDING    = ' '; // space between label and first genetic alteration
+var LABEL_COLOR      = '#666666';
+
 /*
  * Creates an HTML 5 canvas.
  *
@@ -82,22 +89,57 @@ var MUTATION_COLOR = '#008000'; // dark green
  * numSamples - the number of columns
  * scaleFactor - 1.0 no scale
  */
-function CreateCanvas(parentID, canvasID, numGenes, numSamples, scaleFactor) {
+function CreateCanvas(parentID, canvasID, numGenes, numSamples, longestLabel, scaleFactor) {
 
 	var parentElement = document.getElementById(parentID);
 	if (parentElement) {
-		// we want enough space for each alteration w/padding.  remove padding on the right/bottom
-		var canvasHeight = numGenes * (ALTERATION_HEIGHT + ALTERATION_VERTICAL_PADDING) - ALTERATION_VERTICAL_PADDING;
-		var canvasWidth = numSamples * (ALTERATION_WIDTH + ALTERATION_HORIZONTAL_PADDING) - ALTERATION_HORIZONTAL_PADDING;
 		var canvas = document.getElementById(canvasID);
 		if (canvas == null) {
 			canvas = document.createElement('canvas');
 			canvas.setAttribute('id', canvasID);
 		}
-		canvas.setAttribute('width', canvasWidth * scaleFactor);
-		canvas.setAttribute('height', canvasHeight * scaleFactor);
-		parentElement.appendChild(canvas);
+		if (canvas && canvas.getContext) {
+			var context = canvas.getContext('2d');
+			if (context) {
+				// compute max label length & store
+				context.save();
+				context.scale(scaleFactor, scaleFactor);
+				context.font = LABEL_FONT;
+				var maxLabelLengthInPixels = context.measureText(longestLabel + LABEL_SPACING + LABEL_PADDING);
+				context.restore();
+				MAX_LABEL_LENGTH = maxLabelLengthInPixels.width;
+				// set canvas dimensions -
+				// we want enough space for each alteration w/padding.  remove padding on the right/bottom
+				var canvasHeight = numGenes * (ALTERATION_HEIGHT + ALTERATION_VERTICAL_PADDING) - ALTERATION_VERTICAL_PADDING;
+				var canvasWidth = MAX_LABEL_LENGTH + numSamples * (ALTERATION_WIDTH + ALTERATION_HORIZONTAL_PADDING) - ALTERATION_HORIZONTAL_PADDING;
+				canvas.setAttribute('width', canvasWidth * scaleFactor);
+				canvas.setAttribute('height', canvasHeight * scaleFactor);
+				parentElement.appendChild(canvas);
+			}
+		}
 	}
+}
+
+/*
+ * Draws gene - gene alteration label at start of given row
+ */
+function DrawLabel(canvasID, row, gene, alterationValue, scaleFactor) {
+
+	var canvasElement = document.getElementById(canvasID);
+	if (canvasElement && canvasElement.getContext) {
+		var context = canvasElement.getContext('2d');
+		if (context) {
+			context.save();
+			context.scale(scaleFactor, scaleFactor);
+			context.fillStyle    = LABEL_COLOR;
+			context.font         = LABEL_FONT;
+			context.textBaseline = 'middle';
+			var y = GetYCoordinate(row) + ALTERATION_HEIGHT / 2;
+			var label = gene + LABEL_SPACING + alterationValue + LABEL_PADDING;
+			context.fillText(label, 0, y);
+			context.restore();
+		}
+	}	
 }
 
 /*
@@ -198,7 +240,7 @@ function DrawMutation(context, row, column, alterationSettings) {
 }
 
 function GetXCoordinate(column) {
-	return column * (ALTERATION_WIDTH + ALTERATION_HORIZONTAL_PADDING);
+	return (column * (ALTERATION_WIDTH + ALTERATION_HORIZONTAL_PADDING) + MAX_LABEL_LENGTH);
 }
 
 function GetYCoordinate(row) {
