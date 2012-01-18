@@ -134,9 +134,12 @@ function DrawLabel(canvasID, row, gene, alterationValue, scaleFactor) {
 			context.fillStyle    = LABEL_COLOR;
 			context.font         = LABEL_FONT;
 			context.textBaseline = 'middle';
-			var y = GetYCoordinate(row) + ALTERATION_HEIGHT / 2;
 			var label = gene + LABEL_SPACING + alterationValue + LABEL_PADDING;
-			context.fillText(label, 0, y);
+			var labelLength = context.measureText(label);
+			var x = GetXCoordinate(0) - labelLength.width;
+			alert(x);
+			var y = GetYCoordinate(row) + ALTERATION_HEIGHT / 2;
+			context.fillText(label, x, y);
 			context.restore();
 		}
 	}	
