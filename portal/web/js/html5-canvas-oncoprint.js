@@ -137,7 +137,6 @@ function DrawLabel(canvasID, row, gene, alterationValue, scaleFactor) {
 			var label = gene + LABEL_SPACING + alterationValue + LABEL_PADDING;
 			var labelLength = context.measureText(label);
 			var x = GetXCoordinate(0) - labelLength.width;
-			alert(x);
 			var y = GetYCoordinate(row) + ALTERATION_HEIGHT / 2;
 			context.fillText(label, x, y);
 			context.restore();
