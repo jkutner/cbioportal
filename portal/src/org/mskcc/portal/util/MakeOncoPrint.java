@@ -12,6 +12,7 @@ import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
 import java.util.*;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * Generates the Genomic OncoPrint.
@@ -43,7 +44,7 @@ public class MakeOncoPrint {
 	 * @param includeLegend             Include legend boolean.
      * @throws IOException IO Error.
      */
-    public static String makeOncoPrint(String geneList, ProfileData mergedProfile,
+    public static String makeOncoPrint(HttpServletRequest request, String geneList, ProfileData mergedProfile,
 									   ArrayList<CaseList> caseSets, String caseSetId, double zScoreThreshold,
 									   OncoPrintType theOncoPrintType,
 									   boolean showAlteredColumns,
@@ -137,8 +138,11 @@ public class MakeOncoPrint {
         switch (theOncoPrintType) {
 
             case SVG:
+				/*
                 writeSVGOncoPrint(matrix, numColumnsToShow,
                         out, mergedCaseList, geneWithScoreList);
+				*/
+				writeSVGOncoPrint2(request, out);
                 break;          // exit the switch
 
             case HTML:
@@ -151,7 +155,7 @@ public class MakeOncoPrint {
                 int width = 6;
                 int height = 17;
 
-                writeHTMLOncoPrint2(caseSets, caseSetId, matrix, numColumnsToShow, showAlteredColumns,
+                writeHTMLOncoPrint2(request, caseSets, caseSetId, matrix, numColumnsToShow, showAlteredColumns,
 								   theOncoPrintSpecParserOutput.getTheOncoPrintSpecification(), dataSummary,
 								   out, spacing, padding, width, height, includeCaseSetDescription,
 								   includeLegend);
@@ -210,6 +214,16 @@ public class MakeOncoPrint {
         out.append("</g>");
         out.append("</svg>\n");
     }
+
+    static void writeSVGOncoPrint2(HttpServletRequest request, StringBuffer out) {
+
+
+		String svgCode = (String)request.getParameter("svg_code");
+		out.append("<?xml version=\"1.0\"?>\n" +
+				   "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \n" +
+				   "    \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
+		out.append(svgCode);
+	}
 
     /**
      * Generates an OncoPrint in HTML.
@@ -385,7 +399,7 @@ public class MakeOncoPrint {
 	 * @param includeCaseSetDescription Include case set description boolean.
 	 * @param includeLegend             Include legend boolean.
      */
-    static void writeHTMLOncoPrint2(ArrayList<CaseList> caseSets, String caseSetId,
+    static void writeHTMLOncoPrint2(HttpServletRequest request, ArrayList<CaseList> caseSets, String caseSetId,
 									GeneticEvent matrix[][],
 									int numColumnsToShow, boolean showAlteredColumns,
 									OncoPrintSpecification theOncoPrintSpecification,
@@ -395,11 +409,23 @@ public class MakeOncoPrint {
 									boolean includeCaseSetDescription,
 									boolean includeLegend) {
 
-        out.append("<script type=\"text/javascript\" src=\"js/jquery.min.js\"></script>\n");
+        out.append("<script type=\"text/javascript\" src=\"js/MochiKit/Base.js\"></script>\n");
+        out.append("<script type=\"text/javascript\" src=\"js/MochiKit/DOM.js\"></script>\n");
+        out.append("<script type=\"text/javascript\" src=\"js/MochiKit/Style.js\"></script>\n");
+        out.append("<script type=\"text/javascript\" src=\"js/MochiKit/Color.js\"></script>\n");
+        out.append("<script type=\"text/javascript\" src=\"js/SVGKit.js\"></script>\n");
+        out.append("<script type=\"text/javascript\" src=\"js/SVGCanvas.js\"></script>\n");
         out.append("<script type=\"text/javascript\" src=\"js/html5-canvas-oncoprint.js\"></script>\n");
+        out.append("<script type=\"text/javascript\" src=\"js/jquery.min.js\"></script>\n");
 
 		// border for testing
 		//out.append("<style type=\"text/css\">\ncanvas { border: 1px solid black; }\n</style>\n");
+
+		String output = (String)request.getParameter("output");
+
+		if (output.equals("html")) {
+			writeFingerPrintEntrance(request, out);
+		}
 
 		// setup oncoprint div 
         out.append("<div class=\"oncoprint\">\n");
@@ -491,6 +517,59 @@ public class MakeOncoPrint {
             out.append("</table>\n");
             out.append("</div>\n");
 		}
+
+		if (output.equals("html")) {
+			writeFingerPrintExit(out);
+		}
+	}
+
+	static void writeFingerPrintEntrance(HttpServletRequest request, StringBuffer out) {
+		
+
+		out.append("<div class=\"oncoprint_section\">\n");
+		out.append("<p><h4>OncoPrint&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>(<a href=\"faq.jsp#what-are-oncoprints\">What are OncoPrints?</a>)</small></h4>\n");
+		out.append("<p></p>\n");
+		out.append("<form name=\"oncoprint\" target=\"_blank\" id=\"oncoprint\" action=\"index.do\" method=\"POST\"><P>Get OncoPrint:\n");
+
+		org.mskcc.portal.servlet.ServletXssUtil xssUtil = null;
+		try {
+			xssUtil = org.mskcc.portal.servlet.ServletXssUtil.getInstance();
+		}
+		catch (Exception e) {
+			return;
+		}
+		StringBuffer tempUri = new StringBuffer("index.do?");
+		Enumeration paramNames = request.getParameterNames();
+		while (paramNames.hasMoreElements()) {
+			String paramName = (String) paramNames.nextElement();
+			String values[] = request.getParameterValues(paramName);
+			for( String value: values){
+				value = xssUtil.getCleanInput(value);
+				tempUri.append(paramName + "=" + java.net.URLEncoder.encode(value.trim()) +"&");
+				if (paramName.equals("output")) {
+					continue;
+				}
+				out.append("<input type=hidden name='" + paramName + "' value = '" + value.trim() + "'>\n");
+			}
+		}
+		out.append("<input type=hidden id='svg_code' name='svg_code' value = ''>\n");
+		out.append("<input type=hidden id='output' name='output' value = ''>\n");
+
+		// output buttons for both OncoPrint output formats
+		String[] outputTypes = { "html", "svg" };
+		for( String outputType: outputTypes) {
+			out.append("&nbsp;&nbsp;<input type='submit' name='output_format' value='" + outputType.toUpperCase() + "' onClick='submitSVG(this, \"svg_code\", \"output\", \"oncoprint\");'>\n");
+		}
+
+		out.append("<input type=\"checkbox\" name=\"showAlteredColumns\" value=\"true\">Only show altered cases.\n");
+		out.append("</form>\n");
+		out.append("<p>\n");
+	}
+
+	static void writeFingerPrintExit(StringBuffer out) {
+		out.append("</p>\n");
+		out.append("<p>\n");
+		out.append("</div>\n");
 	}
 
     // pluralize a count + name; dumb, because doesn't consider adding 'es' to pluralize

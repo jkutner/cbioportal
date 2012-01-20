@@ -214,7 +214,7 @@ public class CrossCancerSummaryServlet extends HttpServlet {
         request.setAttribute(QueryBuilder.WARNING_UNION, warningUnion);
 
         MakeOncoPrint.OncoPrintType theOncoPrintType = MakeOncoPrint.OncoPrintType.HTML;
-        String oncoPrintHtml = MakeOncoPrint.makeOncoPrint(geneListStr, mergedProfile,
+        String oncoPrintHtml = MakeOncoPrint.makeOncoPrint(request, geneListStr, mergedProfile,
 														   caseList, defaultCaseSet.getStableId(),
 														   zScoreThreshold, theOncoPrintType, showAlteredColumnsBool,
 														   new HashSet<String>(defaultGeneticProfileSet.keySet()),

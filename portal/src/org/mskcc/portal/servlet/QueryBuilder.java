@@ -400,10 +400,10 @@ public class QueryBuilder extends HttpServlet {
                     showAlteredColumnsBool = true;
                 }
                 if (output.equalsIgnoreCase("svg")) {
-                    outputSvg(response, geneListStr, mergedProfile, caseSetList, caseSetId,
+                    outputSvg(request, response, geneListStr, mergedProfile, caseSetList, caseSetId,
                             zScoreThreshold, showAlteredColumnsBool, geneticProfileIdSet,
                             profileList);
-                } else if (output.equalsIgnoreCase("html")) {
+                } else if (output.equalsIgnoreCase("html") || output.equalsIgnoreCase("html_only")) {
                     outputOncoprintHtml(response, geneListStr, mergedProfile, caseSetList,
                             caseSetId, zScoreThreshold, showAlteredColumnsBool, geneticProfileIdSet,
                             profileList,request);
@@ -480,7 +480,7 @@ public class QueryBuilder extends HttpServlet {
         writer.write ("</head>\n");
         writer.write ("<body style=\"background-color:#FFFFFF\">\n");
         MakeOncoPrint.OncoPrintType theOncoPrintType = MakeOncoPrint.OncoPrintType.HTML;
-        String out = MakeOncoPrint.makeOncoPrint(geneListStr, mergedProfile, caseSetList, caseSetId,
+        String out = MakeOncoPrint.makeOncoPrint(request, geneListStr, mergedProfile, caseSetList, caseSetId,
 												 zScoreThreshold, theOncoPrintType, showAlteredColumnsBool,
 												 geneticProfileIdSet, profileList, true, true);
         writer.write(out);
@@ -501,14 +501,14 @@ public class QueryBuilder extends HttpServlet {
         writer.close();
     }
 
-    private void outputSvg(HttpServletResponse response, String geneListStr,
+    private void outputSvg(HttpServletRequest request, HttpServletResponse response, String geneListStr,
             ProfileData mergedProfile, ArrayList<CaseList> caseSetList,
             String caseSetId, double zScoreThreshold, boolean showAlteredColumnsBool,
             HashSet<String> geneticProfileIdSet, ArrayList<GeneticProfile> profileList)
             throws IOException {
         response.setContentType("image/svg+xml");
         MakeOncoPrint.OncoPrintType theOncoPrintType = MakeOncoPrint.OncoPrintType.SVG;
-        String out = MakeOncoPrint.makeOncoPrint(geneListStr, mergedProfile,
+        String out = MakeOncoPrint.makeOncoPrint(request, geneListStr, mergedProfile,
 												 caseSetList, caseSetId,
 												 zScoreThreshold, theOncoPrintType, showAlteredColumnsBool,
 												 geneticProfileIdSet, profileList, true, true);

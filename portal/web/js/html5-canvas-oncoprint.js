@@ -91,6 +91,13 @@ var LABEL_COLOR      = '#666666';
  */
 function CreateCanvas(parentID, canvasID, numGenes, numSamples, longestLabel, scaleFactor) {
 
+	// get dimensions for both html & svg canvas
+	var dimensions = getCanvasDimension(numGenes, numSamples, longestLabel, scaleFactor);
+
+	// set svg canvas context
+	SVG_CONTEXT = new SVGCanvas(dimensions.width, dimensions.height);
+
+	// set html canvas
 	var parentElement = document.getElementById(parentID);
 	if (parentElement) {
 		var canvas = document.getElementById(canvasID);
@@ -101,19 +108,8 @@ function CreateCanvas(parentID, canvasID, numGenes, numSamples, longestLabel, sc
 		if (canvas && canvas.getContext) {
 			var context = canvas.getContext('2d');
 			if (context) {
-				// compute max label length & store
-				context.save();
-				context.scale(scaleFactor, scaleFactor);
-				context.font = LABEL_FONT;
-				var maxLabelLengthInPixels = context.measureText(longestLabel + LABEL_SPACING + LABEL_PADDING);
-				context.restore();
-				MAX_LABEL_LENGTH = maxLabelLengthInPixels.width;
-				// set canvas dimensions -
-				// we want enough space for each alteration w/padding.  remove padding on the right/bottom
-				var canvasHeight = numGenes * (ALTERATION_HEIGHT + ALTERATION_VERTICAL_PADDING) - ALTERATION_VERTICAL_PADDING;
-				var canvasWidth = MAX_LABEL_LENGTH + numSamples * (ALTERATION_WIDTH + ALTERATION_HORIZONTAL_PADDING) - ALTERATION_HORIZONTAL_PADDING;
-				canvas.setAttribute('width', canvasWidth * scaleFactor);
-				canvas.setAttribute('height', canvasHeight * scaleFactor);
+				canvas.setAttribute('width', dimensions.width);
+				canvas.setAttribute('height', dimensions.height);
 				parentElement.appendChild(canvas);
 			}
 		}
@@ -122,26 +118,27 @@ function CreateCanvas(parentID, canvasID, numGenes, numSamples, longestLabel, sc
 
 /*
  * Draws gene - gene alteration label at start of given row
+ * Currently not supported by SVGCanvas
  */
 function DrawLabel(canvasID, row, gene, alterationValue, scaleFactor) {
 
+	// draw to SVGCanvas
+	/*
+	var context = SVG_CONTEXT;
+	if (context) {
+		DrawLabelWithContext(context, row, gene, alterationValue, scaleFactor);
+	}
+	*/
+
+	// draw to html canvas
+	var context;
 	var canvasElement = document.getElementById(canvasID);
 	if (canvasElement && canvasElement.getContext) {
-		var context = canvasElement.getContext('2d');
+		context = canvasElement.getContext('2d');
 		if (context) {
-			context.save();
-			context.scale(scaleFactor, scaleFactor);
-			context.fillStyle    = LABEL_COLOR;
-			context.font         = LABEL_FONT;
-			context.textBaseline = 'middle';
-			var label = gene + LABEL_SPACING + alterationValue + LABEL_PADDING;
-			var labelLength = context.measureText(label);
-			var x = GetXCoordinate(0) - labelLength.width;
-			var y = GetYCoordinate(row) + ALTERATION_HEIGHT / 2;
-			context.fillText(label, x, y);
-			context.restore();
+			DrawLabelWithContext(context, row, gene, alterationValue, scaleFactor);
 		}
-	}	
+	}
 }
 
 /*
@@ -155,17 +152,55 @@ function DrawLabel(canvasID, row, gene, alterationValue, scaleFactor) {
  */
 function DrawAlteration(canvasID, row, column, alterationSettings, scaleFactor) {
 
+	// draw to SVGCanvas
+	var context = SVG_CONTEXT;
+	if (context) {
+		DrawAlterationWithContext(context, row, column, alterationSettings, scaleFactor);
+	}
+
+	// draw to html canvas
 	var canvasElement = document.getElementById(canvasID);
 	if (canvasElement && canvasElement.getContext) {
-		var context = canvasElement.getContext('2d');
+		context = canvasElement.getContext('2d');
 		if (context) {
-			context.save();
-			context.scale(scaleFactor, scaleFactor);
-			DrawMRNA(context, row, column, alterationSettings);
-			DrawCNA(context, row, column, alterationSettings);
-			DrawMutation(context, row, column, alterationSettings);			
-			context.restore();
+			DrawAlterationWithContext(context, row, column, alterationSettings, scaleFactor);
 		}
+	}
+}
+
+/*
+ * Called when HTML or SVG buttons above oncoprint is pressed.
+ *
+ * input - the input element - we will set with desired oncoprint format
+ * svgCodeElement - this will get set with svg-xml if user wants SVG
+ * output - the output element which stores the output format desired
+ * formID - id of form element we want to submit
+ */
+function submitSVG(input, svgCodeElement, output, formID) {
+
+	var outputElement = document.getElementById(output);
+	if (outputElement) {
+		var outputType = input.getAttribute('value');
+		if (outputType == "HTML") {
+			outputType = "HTML_ONLY";
+		}
+		if (outputType == "SVG") {
+			var svgCodeElement = document.getElementById(svgCodeElement);
+			if (svgCodeElement) {
+				var context = SVG_CONTEXT;
+				if (context) {
+					var svg = context.svg;
+					svgCodeElement.setAttribute('value', svg.toXML());
+				}
+			}
+		}
+		outputElement.setAttribute('value', outputType);
+	}
+
+	// submit form
+	var form = document.forms[formID];
+	if (form) {
+		form.submit();
 	}
 }
 
@@ -174,6 +209,59 @@ function DrawAlteration(canvasID, row, column, alterationSettings, scaleFactor) 
 // The following functions are for internal use only.
 //
 *******************************************************************************/
+
+function getCanvasDimension(numGenes, numSamples, longestLabel, scaleFactor) {
+
+	var canvasWidth = 0;
+	var canvasHeight = 0;
+
+	// create a scratch canvas
+	var canvas = document.createElement('canvas');
+	if (canvas && canvas.getContext) {
+			var context = canvas.getContext('2d');
+			if (context) {
+				// compute max label length & store
+				context.scale(scaleFactor, scaleFactor);
+				context.font = LABEL_FONT;
+				var maxLabelLengthInPixels = context.measureText(longestLabel + LABEL_SPACING + LABEL_PADDING);
+				MAX_LABEL_LENGTH = maxLabelLengthInPixels.width;
+				// set canvas dimensions -
+				// we want enough space for each alteration w/padding.  remove padding on the right/bottom
+				canvasHeight = numGenes * (ALTERATION_HEIGHT + ALTERATION_VERTICAL_PADDING) - ALTERATION_VERTICAL_PADDING;
+				canvasWidth = MAX_LABEL_LENGTH + numSamples * (ALTERATION_WIDTH + ALTERATION_HORIZONTAL_PADDING) - ALTERATION_HORIZONTAL_PADDING;
+			}
+	}
+
+	// outta here
+	return { 'width' : canvasWidth * scaleFactor, 'height' : canvasHeight * scaleFactor };
+}
+
+function DrawLabelWithContext(context, row, gene, alterationValue, scaleFactor) {
+
+	context.save();
+	context.scale(scaleFactor, scaleFactor);
+	context.fillStyle    = LABEL_COLOR;
+	context.font         = LABEL_FONT;
+	context.textAlign    = 'right';
+	context.textBaseline = 'middle';
+	var label = gene + LABEL_SPACING + alterationValue + LABEL_PADDING;
+	//var labelLength = context.measureText(label);
+	//var x = GetXCoordinate(0) - labelLength.width;
+	var x = GetXCoordinate(0) - LABEL_PADDING.length;
+	var y = GetYCoordinate(row) + ALTERATION_HEIGHT / 2;
+	context.fillText(label, x, y);
+	context.restore();
+}
+
+function DrawAlterationWithContext(context, row, column, alterationSettings, scaleFactor) {
+
+	context.save();
+	context.scale(scaleFactor, scaleFactor);
+	DrawMRNA(context, row, column, alterationSettings);
+	DrawCNA(context, row, column, alterationSettings);
+	DrawMutation(context, row, column, alterationSettings);			
+	context.restore();
+}
 
 function DrawCNA(context, row, column, alterationSettings) {
 
