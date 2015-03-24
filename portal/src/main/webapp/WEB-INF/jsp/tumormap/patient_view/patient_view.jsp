@@ -78,6 +78,11 @@ boolean showTissueImages = tissueImageUrl!=null;
 String patientID = (String)request.getAttribute(PatientView.PATIENT_ID);
 int numTumors = (Integer)request.getAttribute("num_tumors");
 
+String jsonPatientInfo = "";
+if (isPatientView) {
+    jsonPatientInfo = jsonMapper.writeValueAsString((Map<String,String>)request.getAttribute(PatientView.PATIENT_INFO));
+}
+
 boolean showTimeline = (Boolean)request.getAttribute("has_timeline_data");
 
 String pathReportUrl = (String)request.getAttribute(PatientView.PATH_REPORT_URL);
@@ -369,6 +374,7 @@ var cancerStudyId = '<%=cancerStudy.getCancerStudyStableId()%>';
 var genomicEventObs =  new GenomicEventObserver(<%=showMutations%>,<%=showCNA%>, hasCnaSegmentData);
 var drugType = drugType?'<%=drugType%>':null;
 var clinicalDataMap = <%=jsonClinicalData%>;
+var patientInfo = <%=jsonPatientInfo%>;
 var viewBam = <%=viewBam%>;
 var mapCaseBam = <%=jsonMapCaseBam%>;
 var oncokbUrl = '<%=oncokbUrl%>';
@@ -470,10 +476,21 @@ function addMoreClinicalTooltip(elem) {
     $(elem).each(function( index ) {
         var thisElem = $(this);
         var caseId = thisElem.attr('alt');
+        var table_text;
+        var clinicalData;
         
-        var clinicalData = [];
-        for (var key in clinicalDataMap[caseId]) {
-            clinicalData.push([key, clinicalDataMap[caseId][key]]);
+        if (thisElem.attr('id') === "more-patient-info") {
+            clinicalData = [];
+            for (var key in patientInfo) {
+                clinicalData.push([key,patientInfo[key]]);
+            }
+            table_text = '<table id="more-patient-info-table-'+patientId+'"></table>';
+        } else {
+            clinicalData = [];
+            for (var key in clinicalDataMap[caseId]) {
+                clinicalData.push([key, clinicalDataMap[caseId][key]]);
+            }
+            table_text = '<table id="more-clinical-table-'+caseId+'"></table>';
         }
 
         if (clinicalData.length===0) {
@@ -481,7 +498,7 @@ function addMoreClinicalTooltip(elem) {
         } else {
             thisElem.qtip({
                 content: {
-                    text: '<table id="more-clinical-table-'+caseId+'"></table>'
+                    text: table_text
                 },
                 events: {
                     render: function(event, api) {
@@ -812,32 +829,24 @@ function outputClinicalData() {
 
     if (isPatientView) {
         // patient info
-        var caseId = caseIds[0];
-        var clinicalData = clinicalDataMap[caseId];
-        var patientData = {};
-        for (var k in clinicalData) {
-            if (k !== "SAMPLE_TYPE") {
-                patientData[k] = clinicalData[k];
-            }
-        }
-        
-        var row = "<tr><td><b>Patient</b>&nbsp;</td></tr>";
+        var row = "<tr><td><b>Patient</b></td></tr>";
         $("#clinical_table").append(row);
 
         row = "<tr><td><b><u><a href='"+cbio.util.getLinkToPatientView(cancerStudyId,patientId)+"'>"+patientId+"<a></b></u>&nbsp";
         var info = [];
-        var info = info.concat(formatPatientInfo(patientData));
-        var info = info.concat(formatDiseaseInfo(patientData));
-        var info = info.concat(formatPatientStatus(patientData));
+        var info = info.concat(formatPatientInfo(patientInfo));
+        var info = info.concat(formatDiseaseInfo(patientInfo));
+        var info = info.concat(formatPatientStatus(patientInfo));
         row += info.join(",&nbsp;");
-        row += "</td><td align='right'><a href='#' class='more-clinical-a' alt='"+caseId+"'>More about this tumor</a></td></tr>";
+        row += "</td><td align='right'><a href='#' id='more-patient-info'>More about this patient</a></td></tr>";
         $("#clinical_table").append(row);
         
         // sample info
         var row = "<tr><td><b>Samples</b>&nbsp;</td></tr>";
         $("#clinical_table").append(row);
         for (var i=0; i<n; i++) {
-            caseId = caseIds[i];
+            var caseId = caseIds[i];
+	    var clinicalData = clinicalDataMap[caseId];
             var sampleData = {"SAMPLE_TYPE":clinicalDataMap[caseId].SAMPLE_TYPE};
 
             row = "<tr><td><b><u><a href='"+cbio.util.getLinkToSampleView(cancerStudyId,caseId)+"'>"+caseId+"<a></b></u>&nbsp;";
@@ -848,6 +857,8 @@ function outputClinicalData() {
             var info = [];
             var info = info.concat(formatDiseaseInfo(sampleData));
             row +=info.join(",&nbsp;");
+
+            row += "</td><td align='right'><a href='#' class='more-clinical-a' alt='"+caseId+"'>More about this tumor</a></td></tr>";
             $("#clinical_table").append(row);
 
         }
@@ -873,6 +884,7 @@ function outputClinicalData() {
 
         }
     }
+    addMoreClinicalTooltip("#more-patient-info");
     addMoreClinicalTooltip(".more-clinical-a");
     
     if (n>1) {

@@ -420,6 +420,16 @@ public class PatientView extends HttpServlet {
         Patient patient = DaoPatient.getPatientById(DaoSample.getSampleByCancerStudyAndSampleId(cancerStudyId, sampleId).getInternalPatientId());
         String patientId = patient.getStableId();
         
+        // Add patient info to request if this is a patient view
+        if (request.getAttribute(VIEW_TYPE) == "patient") {
+            List<ClinicalData> patientData = DaoClinicalData.getDataByPatientId(cancerStudyId, patientId);
+            Map<String,String> patientMap = new HashMap<String,String>();
+            for (ClinicalData cd: patientData) {
+                patientMap.put(cd.getAttrId(), cd.getAttrVal());
+            }
+            request.setAttribute(PATIENT_INFO, patientMap);
+        }
+
         int numOfSamplesInPatient = DaoSample.getSamplesByPatientId(patient.getInternalId()).size();
         request.setAttribute("num_tumors", numOfSamplesInPatient);
         
