@@ -394,10 +394,11 @@ public class PatientView extends HttpServlet {
     
     private void setClinicalInfo(HttpServletRequest request) throws DaoException {
         List<String> samples = (List<String>)request.getAttribute(SAMPLE_ID);
+	boolean isPatientView = request.getAttribute(VIEW_TYPE) == "patient";
         
         CancerStudy cancerStudy = (CancerStudy)request.getAttribute(CANCER_STUDY);
         int cancerStudyId = cancerStudy.getInternalId();
-        List<ClinicalData> cds = DaoClinicalData.getSampleAndPatientData(cancerStudyId, samples);
+        List<ClinicalData> cds = DaoClinicalData.getSampleData(cancerStudyId, samples);
         Map<String,Map<String,String>> clinicalData = new LinkedHashMap<String,Map<String,String>>();
         for (ClinicalData cd : cds) {
             String caseId = cd.getStableId();
@@ -421,7 +422,7 @@ public class PatientView extends HttpServlet {
         String patientId = patient.getStableId();
         
         // Add patient info to request if this is a patient view
-        if (request.getAttribute(VIEW_TYPE) == "patient") {
+        if (isPatientView) {
             List<ClinicalData> patientData = DaoClinicalData.getDataByPatientId(cancerStudyId, patientId);
             Map<String,String> patientMap = new HashMap<String,String>();
             for (ClinicalData cd: patientData) {
