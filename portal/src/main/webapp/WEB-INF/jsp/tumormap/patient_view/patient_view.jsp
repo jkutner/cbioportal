@@ -478,19 +478,67 @@ function addMoreClinicalTooltip(elem) {
         var caseId = thisElem.attr('alt');
         var table_text;
         var clinicalData;
+        var dataTable;
         
         if (thisElem.attr('id') === "more-patient-info") {
             clinicalData = [];
             for (var key in patientInfo) {
-                clinicalData.push([key,patientInfo[key]]);
+                clinicalData.push([key, patientInfo[key]]);
             }
             table_text = '<table id="more-patient-info-table-'+patientId+'"></table>';
+            dataTable = {
+                "sDom": 't',
+                "bJQueryUI": true,
+                "bDestroy": true,
+                "aaData": clinicalData,
+                "aoColumnDefs": [
+                    {
+                        "aTargets": [ 0 ],
+                        "sClass": "left-align-td",
+                        "mRender": function ( data, type, full ) {
+                            return '<b>'+data+'</b>';
+                        }
+                    },
+                    {
+                        "aTargets": [ 1 ],
+                        "sClass": "left-align-td",
+                        "bSortable": false
+                    }
+                ],
+                "aaSorting": [[0,'asc']],
+                "oLanguage": {
+                    "sInfo": "&nbsp;&nbsp;(_START_ to _END_ of _TOTAL_)&nbsp;&nbsp;",
+                    "sInfoFiltered": "",
+                    "sLengthMenu": "Show _MENU_ per page"
+                },
+                "iDisplayLength": -1
+            };
         } else {
-            clinicalData = [];
-            for (var key in clinicalDataMap[caseId]) {
-                clinicalData.push([key, clinicalDataMap[caseId][key]]);
-            }
-            table_text = '<table id="more-clinical-table-'+caseId+'"></table>';
+            table_text = '<table id="more-sample-info-table"></table>';
+            var all_keys = [];
+            all_keys = $.unique($.map(clinicalDataMap, function (o) {return Object.keys(o)}));
+            clinicalData = Object.keys(clinicalDataMap).map(function(k) {
+                clicopy = {};
+                clicopy["SAMPLE"] = k;
+                all_keys.forEach(function(k2) {
+                   clicopy[k2] =  clinicalDataMap[k][k2] || "N/A";
+                });
+                return clicopy;
+            });
+           dataTable = {
+                "sDom": 't',
+                "bJQueryUI": true,
+                "bDestroy": true,
+                "aaData": clinicalData,
+                "aoColumns": all_keys.map(function(k){return {"sTitle":k,"mData":k}}).concat({"sTitle":"SAMPLE","mData":"SAMPLE"}),
+                "aaSorting": [[0,'asc']],
+                "oLanguage": {
+                    "sInfo": "&nbsp;&nbsp;(_START_ to _END_ of _TOTAL_)&nbsp;&nbsp;",
+                    "sInfoFiltered": "",
+                    "sLengthMenu": "Show _MENU_ per page"
+                },
+                "iDisplayLength": -1
+            };
         }
 
         if (clinicalData.length===0) {
@@ -503,33 +551,7 @@ function addMoreClinicalTooltip(elem) {
                 events: {
                     render: function(event, api) {
                         $(this).html("<table></table>");
-                        $(this).find("table").dataTable( {
-                            "sDom": 't',
-                            "bJQueryUI": true,
-                            "bDestroy": true,
-                            "aaData": clinicalData,
-                            "aoColumnDefs":[
-                                {
-                                    "aTargets": [ 0 ],
-                                    "sClass": "left-align-td",
-                                    "mRender": function ( data, type, full ) {
-                                        return '<b>'+data+'</b>';
-                                    }
-                                },
-                                {
-                                    "aTargets": [ 1 ],
-                                    "sClass": "left-align-td",
-                                    "bSortable": false
-                                }
-                            ],
-                            "aaSorting": [[0,'asc']],
-                            "oLanguage": {
-                                "sInfo": "&nbsp;&nbsp;(_START_ to _END_ of _TOTAL_)&nbsp;&nbsp;",
-                                "sInfoFiltered": "",
-                                "sLengthMenu": "Show _MENU_ per page"
-                            },
-                            "iDisplayLength": -1
-                        } );
+                        $(this).find("table").dataTable(dataTable);
                     }
                 },
                     show: {event: "mouseover"},
@@ -1254,6 +1276,6 @@ window["<%=PatientView.CANCER_STUDY_META_DATA_KEY_STRING%>"]
         = <%=jsonMapper.writeValueAsString(request.getAttribute(PatientView.CANCER_STUDY_META_DATA_KEY_STRING))%>;
 
 </script>
-
+<script src="js/lib/bootstrap.min.js?<%=GlobalProperties.getAppVersion()%>" type="text/javascript"></script>
 </body>
 </html>
