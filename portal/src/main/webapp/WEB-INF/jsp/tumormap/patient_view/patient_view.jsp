@@ -487,6 +487,7 @@ function addMoreClinicalTooltip(elem) {
             }
             table_text = '<table id="more-patient-info-table-'+patientId+'"></table>';
             dataTable = {
+                "dom": 'C<"clear">lfrtip',
                 "sDom": 't',
                 "bJQueryUI": true,
                 "bDestroy": true,
@@ -515,8 +516,14 @@ function addMoreClinicalTooltip(elem) {
             };
         } else {
             table_text = '<table id="more-sample-info-table"></table>';
+            var arrayUnique = function(a) {
+                return a.reduce(function(p, c) {
+                    if (p.indexOf(c) < 0) p.push(c);
+                    return p;
+                }, []);
+            };
             var all_keys = [];
-            all_keys = $.unique($.map(clinicalDataMap, function (o) {return Object.keys(o)}));
+            all_keys = arrayUnique(($.map(clinicalDataMap, function (o) {return Object.keys(o)})));
             clinicalData = Object.keys(clinicalDataMap).map(function(k) {
                 clicopy = {};
                 clicopy["SAMPLE"] = k;
@@ -530,7 +537,7 @@ function addMoreClinicalTooltip(elem) {
                 "bJQueryUI": true,
                 "bDestroy": true,
                 "aaData": clinicalData,
-                "aoColumns": all_keys.map(function(k){return {"sTitle":k,"mData":k}}).concat({"sTitle":"SAMPLE","mData":"SAMPLE"}),
+                "aoColumns": [{"sTitle":"SAMPLE","mData":"SAMPLE"}].concat(all_keys.map(function(k){return {"sTitle":k.replace(/_/g, ' '),"mData":k}})),
                 "aaSorting": [[0,'asc']],
                 "oLanguage": {
                     "sInfo": "&nbsp;&nbsp;(_START_ to _END_ of _TOTAL_)&nbsp;&nbsp;",
@@ -550,7 +557,7 @@ function addMoreClinicalTooltip(elem) {
                 },
                 events: {
                     render: function(event, api) {
-                        $(this).html("<table></table>");
+                        $(this).html("<table style='background-color: white;'></table>");
                         $(this).find("table").dataTable(dataTable);
                     }
                 },
@@ -860,7 +867,7 @@ function outputClinicalData() {
         var info = info.concat(formatDiseaseInfo(patientInfo));
         var info = info.concat(formatPatientStatus(patientInfo));
         row += info.join(",&nbsp;");
-        row += "</td><td align='right'><a href='#' id='more-patient-info'>More about this patient</a></td></tr>";
+        row += ",&nbsp;<a href='#' id='more-patient-info'>More about this patient</a></td></tr>";
         $("#clinical_table").append(row);
         
         // sample info
@@ -868,7 +875,7 @@ function outputClinicalData() {
         $("#clinical_table").append(row);
         for (var i=0; i<n; i++) {
             var caseId = caseIds[i];
-	    var clinicalData = clinicalDataMap[caseId];
+            var clinicalData = clinicalDataMap[caseId];
             var sampleData = {"SAMPLE_TYPE":clinicalDataMap[caseId].SAMPLE_TYPE};
 
             row = "<tr><td><b><u><a href='"+cbio.util.getLinkToSampleView(cancerStudyId,caseId)+"'>"+caseId+"<a></b></u>&nbsp;";
@@ -880,10 +887,10 @@ function outputClinicalData() {
             var info = info.concat(formatDiseaseInfo(sampleData));
             row +=info.join(",&nbsp;");
 
-            row += "</td><td align='right'><a href='#' class='more-clinical-a' alt='"+caseId+"'>More about this tumor</a></td></tr>";
+            row += "</td></tr>";
             $("#clinical_table").append(row);
-
         }
+        $("#clinical_table").append("<tr><td><a href='#' class='more-clinical-a' alt='"+caseId+"'>More about these samples</a></td></tr>");
     } else {
         // for each sample
         for (var i=0; i<n; i++) {
