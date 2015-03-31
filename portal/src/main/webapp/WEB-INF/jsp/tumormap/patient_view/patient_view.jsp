@@ -352,6 +352,40 @@ if (patientViewError!=null) {
 	.igv-link {
 		cursor: pointer;
 	}
+    /* Sample records style */
+    .sample-record {
+        display: inline-block;
+        margin: 3px;
+        position: relative;
+        color: #888;
+        //text-shadow: 0 1px 0 rgba(255,255,255, 0.8);
+        text-decoration: none;
+        text-align: center;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        font-family: helvetica, arial, sans-serif;
+        border-radius: 4px;
+        border: 1px solid #bcbcbc;
+
+        -webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+
+        background-image: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(239,239,239,1) 60%,rgba(225,223,226,1) 100%);
+        background-image: -moz-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(239,239,239,1) 60%,rgba(225,223,226,1) 100%);
+        background-image: -o-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(239,239,239,1) 60%,rgba(225,223,226,1) 100%);
+        background-image: -ms-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(239,239,239,1) 60%,rgba(225,223,226,1) 100%);
+        background-image: linear-gradient(top, rgba(255,255,255,1) 0%,rgba(239,239,239,1) 60%,rgba(225,223,226,1) 100%);
+    }
+
+    .sample-record:hover {
+        color: #555;
+    }
+
+    /*.sample_record:active,.sample_record:active:after,.sample_record:active:before {
+        -webkit-box-shadow: none;
+        box-shadow: none;*/
+}
 </style>
 
 <script type="text/javascript" src="js/src/patient-view/genomic-event-observer.js?<%=GlobalProperties.getAppVersion()%>"></script>
@@ -891,6 +925,26 @@ function outputClinicalData() {
             $("#clinical_table").append(row);
         }
         $("#clinical_table").append("<tr><td><a href='#' class='more-clinical-a' alt='"+caseId+"'>More about these samples</a></td></tr>");
+        
+        var sample_recs = "";
+        for (var i=0; i<n; i++) {
+            var caseId = caseIds[i];
+            
+            sample_recs += "<div class='sample-record'><b><u><a href='"+cbio.util.getLinkToSampleView(cancerStudyId,caseId)+"'>"+caseId+"<a></b></u>&nbsp;";
+            if (n>1) {
+                sample_recs += "<svg width='12' height='12' class='case-label-header' alt='"+caseId+"'></svg>&nbsp;";
+            }
+            
+            var sampleData = {"SAMPLE_TYPE":clinicalDataMap[caseId].SAMPLE_TYPE,
+                              "METASTATIC_SITE":clinicalDataMap[caseId].METASTATIC_SITE || "N/A",
+                              "PRIMARY_SITE":clinicalDataMap[caseId].PRIMARY_SITE || "N/A"};
+            var info = [];
+            info = info.concat(formatStateInfo(sampleData));
+            sample_recs += info.join(",&nbsp;");
+            sample_recs += "</div>"
+        }
+        $("#clinical_div").append(sample_recs);
+    
     } else {
         // for each sample
         for (var i=0; i<n; i++) {
