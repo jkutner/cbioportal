@@ -116,6 +116,7 @@ boolean hasAlleleFrequencyData =  ((Boolean)request.getAttribute(PatientView.HAS
 boolean showGenomicOverview = showMutations | hasCnaSegmentData;
 boolean showClinicalTrials = true;
 boolean showDrugs = true;
+boolean showSamplesTable = isPatientView;
 
 double[] genomicOverviewCopyNumberCnaCutoff = GlobalProperties.getPatientViewGenomicOverviewCnaCutoff();
 
@@ -202,6 +203,10 @@ if (patientViewError!=null) {
     <%if(showSimilarPatient){%>
     <li><a id="link-tissue-similar-patients" href='#tab_similar-patients' class='patient-tab'>Similar Patients</a></li>
     <%}%>
+    
+    <%if(showSamplesTable){%>
+    <li><a id="link-samples-table" href='#tab_samples-table' class='patient-tab'>Samples</a></li>
+    <%}%>
 
     </ul>
 
@@ -254,6 +259,12 @@ if (patientViewError!=null) {
     <%if(showClinicalTrials){%>
         <div class="patient-section" id="tab_clinical-trials">
             <%@ include file="clinical_trials.jsp" %>
+        </div>
+    <%}%>
+    
+    <%if(showSamplesTable){%>
+        <div class="samples-table-section" id="tab_samples-table">
+            <%@ include file="samples_table.jsp" %>
         </div>
     <%}%>
 
@@ -361,7 +372,7 @@ if (patientViewError!=null) {
         //text-shadow: 0 1px 0 rgba(255,255,255, 0.8);
         text-decoration: none;
         text-align: center;
-        padding: 8px 12px;
+        padding: 4px 6px;
         font-size: 12px;
         font-weight: 700;
         font-family: helvetica, arial, sans-serif;
@@ -886,45 +897,23 @@ function outputClinicalData() {
     if (n>1) initCaseMetaData();
     
     // first row -- cancer study and nav
-    $("#clinical_table").append("<tr><td>"+formatCancerStudyInfo()+"</td><td>"+formatNav()+"</td></tr>");
+    //$("#clinical_table").append("<tr><td>"+formatCancerStudyInfo()+"</td><td>"+formatNav()+"</td>");
     initNav();
     
 
     if (isPatientView) {
         // patient info
-        var row = "<tr><td><b>Patient</b></td></tr>";
-        $("#clinical_table").append(row);
+        //var row = "<tr><td><b>Patient</b></td>";
+        //$("#clinical_table").append(row);
 
-        row = "<tr><td><b><u><a href='"+cbio.util.getLinkToPatientView(cancerStudyId,patientId)+"'>"+patientId+"<a></b></u>&nbsp";
+        row = "<td><b><u><a href='"+cbio.util.getLinkToPatientView(cancerStudyId,patientId)+"'>"+patientId+"<a></b></u>&nbsp";
         var info = [];
         var info = info.concat(formatPatientInfo(patientInfo));
         var info = info.concat(formatDiseaseInfo(patientInfo));
         var info = info.concat(formatPatientStatus(patientInfo));
         row += info.join(",&nbsp;");
         row += ",&nbsp;<a href='#' id='more-patient-info'>More about this patient</a></td></tr>";
-        $("#clinical_table").append(row);
-        
-        // sample info
-        var row = "<tr><td><b>Samples</b>&nbsp;</td></tr>";
-        $("#clinical_table").append(row);
-        for (var i=0; i<n; i++) {
-            var caseId = caseIds[i];
-            var clinicalData = clinicalDataMap[caseId];
-            var sampleData = {"SAMPLE_TYPE":clinicalDataMap[caseId].SAMPLE_TYPE};
-
-            row = "<tr><td><b><u><a href='"+cbio.util.getLinkToSampleView(cancerStudyId,caseId)+"'>"+caseId+"<a></b></u>&nbsp;";
-            if (n>1) {
-                row += "<svg width='12' height='12' class='case-label-header' alt='"+caseId+"'></svg>&nbsp;";
-            }
-
-            var info = [];
-            var info = info.concat(formatDiseaseInfo(sampleData));
-            row +=info.join(",&nbsp;");
-
-            row += "</td></tr>";
-            $("#clinical_table").append(row);
-        }
-        $("#clinical_table").append("<tr><td><a href='#' class='more-clinical-a' alt='"+caseId+"'>More about these samples</a></td></tr>");
+        $("#clinical_table").append("<tr><td>"+formatCancerStudyInfo()+"</td><td>"+formatNav()+"</td>" + row);
         
         var sample_recs = "";
         for (var i=0; i<n; i++) {
