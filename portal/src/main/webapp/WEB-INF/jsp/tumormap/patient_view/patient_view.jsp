@@ -912,7 +912,7 @@ function outputClinicalData() {
         var info = info.concat(formatDiseaseInfo(patientInfo));
         var info = info.concat(formatPatientStatus(patientInfo));
         row += info.join(",&nbsp;");
-        row += ",&nbsp;<a href='#' id='more-patient-info'>More about this patient</a></td></tr>";
+        row += "</td></tr>";
         $("#clinical_table").append("<tr><td>"+formatCancerStudyInfo()+"</td><td>"+formatNav()+"</td>" + row);
         
         var sample_recs = "";
@@ -956,8 +956,6 @@ function outputClinicalData() {
 
         }
     }
-    addMoreClinicalTooltip("#more-patient-info");
-    addMoreClinicalTooltip(".more-clinical-a");
     
     if (n>1) {
         plotCaseLabel('.case-label-header', false, true);
@@ -1043,7 +1041,11 @@ function outputClinicalData() {
             if (normalizedCaseType(caseType.toLowerCase()) === "metastasis") {
                 loc = guessClinicalData(clinicalData,["TUMOR_SITE","METASTATIC_SITE"]);
             } else {
-                loc = guessClinicalData(clinicalData,["TUMOR_SITE","PRIMARY_SITE"]);
+                if (isPatientView) {
+                    loc = patientInfo["PRIMARY_SITE"];
+                } else {
+                    loc = guessClinicalData(clinicalData,["TUMOR_SITE","PRIMARY_SITE"]);
+                }
             }
             if (loc!==null) 
                 ret += " ("+loc+")";
