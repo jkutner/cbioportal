@@ -112,7 +112,7 @@ boolean showPathways = showPlaceHoder & (showMutations | showCNA);
 boolean showSimilarPatient = false;//showPlaceHoder & (showMutations | showCNA);
 
 boolean hasCnaSegmentData = ((Boolean)request.getAttribute(PatientView.HAS_SEGMENT_DATA));
-boolean hasAlleleFrequencyData =  ((Boolean)request.getAttribute(PatientView.HAS_ALLELE_FREQUENCY_DATA));
+boolean hasAlleleFrequencyData = ((Boolean)request.getAttribute(PatientView.HAS_ALLELE_FREQUENCY_DATA));
 boolean showGenomicOverview = showMutations | hasCnaSegmentData;
 boolean showClinicalTrials = true;
 boolean showDrugs = true;
@@ -392,11 +392,14 @@ if (patientViewError!=null) {
     .sample-record:hover {
         color: #555;
     }
+    
+    #page_wrapper_table {
+        background-color: white;
+    }
 
     /*.sample_record:active,.sample_record:active:after,.sample_record:active:before {
         -webkit-box-shadow: none;
         box-shadow: none;*/
-}
 </style>
 
 <script type="text/javascript" src="js/src/patient-view/genomic-event-observer.js?<%=GlobalProperties.getAppVersion()%>"></script>
