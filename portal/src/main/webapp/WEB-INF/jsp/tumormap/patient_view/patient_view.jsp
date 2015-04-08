@@ -403,6 +403,7 @@ if (patientViewError!=null) {
 </style>
 
 <script type="text/javascript" src="js/src/patient-view/genomic-event-observer.js?<%=GlobalProperties.getAppVersion()%>"></script>
+<script src="js/lib/dataTables.tableTools.js?<%=GlobalProperties.getAppVersion()%>"></script>
 <script type="text/javascript">
 
 var print = <%=print%>;
@@ -922,10 +923,11 @@ function outputClinicalData() {
         for (var i=0; i<n; i++) {
             var caseId = caseIds[i];
             
-            sample_recs += "<div class='sample-record'><b><u><a href='"+cbio.util.getLinkToSampleView(cancerStudyId,caseId)+"'>"+caseId+"<a></b></u>&nbsp;";
+            sample_recs += "<div class='sample-record'>";
             if (n>1) {
                 sample_recs += "<svg width='12' height='12' class='case-label-header' alt='"+caseId+"'></svg>&nbsp;";
             }
+            sample_recs += "<b><u><a href='"+cbio.util.getLinkToSampleView(cancerStudyId,caseId)+"'>"+caseId+"<a></b></u>&nbsp;"
             
             var sampleData = {"SAMPLE_TYPE":clinicalDataMap[caseId].SAMPLE_TYPE,
                               "METASTATIC_SITE":clinicalDataMap[caseId].METASTATIC_SITE || "N/A",

@@ -66,6 +66,34 @@
 %>
 
 <style type="text/css">
+@import "css/data_table_jui.css?<%=GlobalProperties.getAppVersion()%>";
+@import "css/data_table_ColVis.css?<%=GlobalProperties.getAppVersion()%>";
+.ColVis {
+        float: left;
+        margin-bottom: 0
+}
+.dataTables_length {
+        width: auto;
+        float: right;
+}
+.dataTables_info {
+        clear: none;
+        width: auto;
+        float: right;
+}
+.dataTables_filter {
+        width: 40%;
+}
+.div.datatable-paging {
+        width: auto;
+        float: right;
+}
+.data-table-name {
+        float: left;
+        font-weight: bold;
+        font-size: 120%;
+        vertical-align: middle;
+}
 </style>
 <script type="text/javascript" src="js/lib/jquery.highlight-4.js?<%=GlobalProperties.getAppVersion()%>"></script>
 <script type="text/javascript">
@@ -90,10 +118,11 @@
             });
             return clicopy;
         });
-        var samplesDataTable = $("#pv-samples-table").dataTable({
-            "sDom": '<"H"<"trials-summary-table-name">fr>t<"F">',
+        var samplesDataTable = $("#samples-table").dataTable({
+            "sDom": '<"H"T<"sample-table">fr>t<"F">',
             "bJQueryUI": true,
             "bDestroy": true,
+            "autoWidth": true,
             "aaData": clinicalData,
             "aoColumns": [{"sTitle":"ATTR","mData":"ATTR"}].concat(Object.keys(clinicalDataMap).map(function(k){return {"sTitle":k.replace(/_/g, ' '),"mData":k}})),
             "aaSorting": [[0,'asc']],
@@ -102,6 +131,12 @@
                 "sInfoFiltered": "",
                 "sLengthMenu": "Show _MENU_ per page",
                 "sEmptyTable": "Could not find any samples."
+            },
+            tableTools: {
+                "sSwfPath": "/swf/copy_csv_xls_pdf.swf",
+                "aButtons": [
+                    "csv",
+                ]
             },
             "iDisplayLength": -1
         }); 
@@ -123,8 +158,8 @@
             clinicalData.push([key, patientInfo[key]]);
         }
         table_text = '<table id="patient-info-table-'+patientId+'"></table>';
-        var patientDataTable = $("#pv-patient-table").dataTable({
-            "sDom": '<"H"<"trials-summary-table-name">fr>t<"F">',
+        var patientDataTable = $("#patient-table").dataTable({
+            "sDom": 't',
             "bJQueryUI": true,
             "bDestroy": true,
             "aaData": clinicalData,
@@ -150,7 +185,7 @@
             },
             "iDisplayLength": -1
         });
-        patientDataTable.css("width","100%");
+        patientDataTable.css("width","50%");
     };
     
     var patientTableLoaded = false;
@@ -165,11 +200,13 @@
         loadPatientTable();
     });
 </script>
-    
-<table id="pv-samples-table">
+
+<h3 style="color: black;">Samples Information</h3>
+<table id="samples-table">
 </table>
 <div id="samples_table_wait"><img src="images/ajax-loader.gif"/></div>
 
-<table id="pv-patient-table">
+<h3 style="color: black;">Patient Information</h3>
+<table id="patient-table">
 </table>
 <div id="patient_table_wait"><img src="images/ajax-loader.gif"/></div>
