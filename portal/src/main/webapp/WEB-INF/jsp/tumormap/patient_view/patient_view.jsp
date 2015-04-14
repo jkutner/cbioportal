@@ -912,11 +912,11 @@ function outputClinicalData() {
         for (var i=0; i<Math.min(n, nr_in_head+max_in_tail); i++) {
             var caseId = caseIds[i];
             
-            sample_recs += "<div class='sample-record'>";
+            sample_recs += "<div class='sample-record more-sample-info' alt='"+caseId+"'>";
             if (n>1) {
                 sample_recs += "<svg width='12' height='12' class='case-label-header' alt='"+caseId+"'></svg>&nbsp;";
             }
-            sample_recs += "<b><u><a style='color: #1974b8;' href='"+cbio.util.getLinkToSampleView(cancerStudyId,caseId)+"'>"+caseId+"</a></b></u><a alt="+caseId+" class='more-sample-info'>&nbsp;"
+            sample_recs += "<b><u><a style='color: #1974b8;' href='"+cbio.util.getLinkToSampleView(cancerStudyId,caseId)+"'>"+caseId+"</a></b></u><a>&nbsp;"
             
             var sampleData = {"SAMPLE_TYPE":clinicalDataMap[caseId].SAMPLE_TYPE,
                               "METASTATIC_SITE":clinicalDataMap[caseId].METASTATIC_SITE || "N/A",
