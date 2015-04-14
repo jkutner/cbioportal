@@ -207,7 +207,7 @@ if (patientViewError!=null) {
     <%}%>
     
     <%if(showSamplesTable){%>
-    <li><a id="link-samples-table" href='#tab_samples-table' class='patient-tab'>Samples</a></li>
+    <li><a id="link-samples-table" href='#tab_samples-table' class='patient-tab'>Clinical Information</a></li>
     <%}%>
 
     </ul>
@@ -379,10 +379,6 @@ if (patientViewError!=null) {
     #page_wrapper_table {
         background-color: white;
     }
-    
-    /*.sample_record:active,.sample_record:active:after,.sample_record:active:before {
-        -webkit-box-shadow: none;
-        box-shadow: none;*/
 </style>
 
 <script type="text/javascript" src="js/src/patient-view/genomic-event-observer.js?<%=GlobalProperties.getAppVersion()%>"></script>
@@ -911,8 +907,8 @@ function outputClinicalData() {
         var head_recs = "";
         var tail_recs = "";
         var sample_recs = "";
-        var nr_in_head = 3;
-        var max_in_tail = 5;
+        var nr_in_head = 5;
+        var max_in_tail = 20;
         for (var i=0; i<Math.min(n, nr_in_head+max_in_tail); i++) {
             var caseId = caseIds[i];
             
@@ -931,13 +927,13 @@ function outputClinicalData() {
             sample_recs += "</a></div>";
             
             if ((n > nr_in_head && i == nr_in_head-1) || (n <= nr_in_head && i == n-1)) {
-                head_recs = sample_recs.replace(/sample-record/g, 'sample-record-inline').replace(/<\/div>/g, ",&nbsp</div>");
+                head_recs = sample_recs.replace(/sample-record/g, 'sample-record-inline').replace(/<\/div>/g, ", </div>");
                 sample_recs = "";
             }
         }
+        var svg_corner = '<svg width="20" height="15" style="top: -10px;"><line x1="10" y1="0" x2="10" y2="10" stroke="gray" stroke-width="2"></line><line x1="10" y1="10" x2="50" y2="10" stroke="gray" stroke-width="2"></line></svg>';
         if (n > nr_in_head) {
             tail_recs = sample_recs;
-            var svg_corner = '<svg width="20" height="15" style="top: -10px;"><line x1="10" y1="0" x2="10" y2="10" stroke="gray" stroke-width="2"></line><line x1="10" y1="10" x2="50" y2="10" stroke="gray" stroke-width="2"></line></svg>'
             $("#clinical_div").append(svg_corner + head_recs + "<b><a id='sample-btn-topbar' style='cursor:pointer'>...</a></b>");
             $("#sample-btn-topbar").qtip({
                 content: {
@@ -963,7 +959,7 @@ function outputClinicalData() {
             });
             
         } else {
-            $("#clinical_div").append("<hr style='margin-top: 2px; margin-bottom: 2px;' /><b>Samples&nbsp;</b>" + head_recs);
+            $("#clinical_div").append(svg_corner + head_recs.replace(/, <\/div>$/, "</div>"));
         }
         addMoreClinicalTooltip("#more-patient-info");
         addMoreClinicalTooltip(".more-sample-info");

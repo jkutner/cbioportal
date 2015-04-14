@@ -68,39 +68,39 @@
 <style type="text/css">
 @import "css/data_table_jui.css?<%=GlobalProperties.getAppVersion()%>";
 @import "css/data_table_ColVis.css?<%=GlobalProperties.getAppVersion()%>";
-#samples-table_wrapper .ColVis {
+.clinical-attr-table .ColVis {
         float: left;
         margin-bottom: 0
 }
-#samples-table_wrapper .dataTables_length {
+.clinical-attr-table .dataTables_length {
         width: auto;
         float: right;
 }
-#samples-table_wrapper .dataTables_info {
+.clinical-attr-table .dataTables_info {
         clear: none;
         width: auto;
         float: right;
 }
-#samples-table_wrapper .dataTables_filter {
+.clinical-attr-table .dataTables_filter {
         width: 40%;
 }
-#samples-table_wrapper .div.datatable-paging {
+.clinical-attr-table .div.datatable-paging {
         width: auto;
         float: right;
 }
-#samples-table_wrapper .data-table-name {
+.clinical-attr-table .data-table-name {
         float: left;
         font-weight: bold;
         font-size: 120%;
         vertical-align: middle;
 }
-#samples-table_wrapper .ColVis_collection {
+.clinical-attr-table .ColVis_collection {
     width: 500px;
 }
-#samples-table_wrapper .ColVis_Button {
+.clinical-attr-table .ColVis_Button {
     white-space: nowrap;
 }
-#samples-table_wrapper .ColVis_Button.TableTools_Button.ColVis_MasterButton{
+.clinical-attr-table .ColVis_Button.TableTools_Button.ColVis_MasterButton{
     outline: none;
     background-color: white;
 /*    color: #2986e2;
@@ -112,28 +112,32 @@
     height: 23px;
     padding: 0;
 }
-#samples-table_wrapper .ColVis_Button.TableTools_Button.ColVis_MasterButton span{
+.clinical-attr-table .ColVis_Button.TableTools_Button.ColVis_MasterButton span{
     padding: 2px 6px 3px 6px;
 }
-#samples-table_wrapper #dataTables_filter {
+.clinical-attr-table #dataTables_filter {
     width:auto;
     float: right;
 }
-#samples-table_wrapper .dataTables_filter label input {
+.clinical-attr-table .dataTables_filter label input {
     appearance: searchfield;
     -moz-appearance: searchfield;
     -webkit-appearance: searchfield;
 }
-#samples-table_wrapper table.dataTable>tbody>tr>td {
+.clinical-attr-table table.dataTable>tbody>tr>td {
     white-space: nowrap;
 }
-#samples-table_wrapper .DTTT_container.ui-buttonset.ui-buttonset-multi a {
+.clinical-attr-table .DTTT_container.ui-buttonset.ui-buttonset-multi a {
     width: 50px;
     height: 20px;
     line-height: 20px;
 }
-#samples-table_wrapper .DTTT_container.ui-buttonset.ui-buttonset-multi {
+.clinical-attr-table .DTTT_container.ui-buttonset.ui-buttonset-multi {
     float: left;
+}
+.table-link {
+    color: #428bca;
+    cursor: pointer;
 }
 </style>
 <script type="text/javascript" src="js/lib/jquery.highlight-4.js?<%=GlobalProperties.getAppVersion()%>"></script>
@@ -197,14 +201,8 @@
             "iDisplayLength": -1
         }); 
         samplesDataTable.css("width","100%");
+        $("#samples-table_wrapper").addClass("clinical-attr-table");
     };
-    
-    var samplesTableLoaded = false;
-    function loadSamplesTable() {
-        if (samplesTableLoaded) return;
-        populateSamplesTable();
-        samplesTableLoaded = true;
-    }
     
     var populatePatientTable = function() {
         $("#patient_table_wait").hide();
@@ -213,21 +211,22 @@
         for (var key in patientInfo) {
             clinicalData.push([key, patientInfo[key]]);
         }
-        table_text = '<table id="patient-info-table-'+patientId+'"></table>';
+        table_text = '<table id="patient-table"></table>';
         var patientDataTable = $("#patient-table").dataTable({
-            "sDom": 't',
+            "bSort": false,
+            "sDom": '<"H"TC<"dataTableReset">f>rt',
             "bJQueryUI": true,
             "bDestroy": true,
+            "autoWidth": true,
             "aaData": clinicalData,
             "aoColumnDefs": [
                 {
+                    "sTitle": "Attribute",
                     "aTargets": [ 0 ],
                     "sClass": "left-align-td",
-                    "mRender": function ( data, type, full ) {
-                        return '<b>'+data+'</b>';
-                    }
                 },
                 {
+                    "sTitle": "Value",
                     "aTargets": [ 1 ],
                     "sClass": "left-align-td",
                     "bSortable": false
@@ -237,11 +236,20 @@
             "oLanguage": {
                 "sInfo": "&nbsp;&nbsp;(_START_ to _END_ of _TOTAL_)&nbsp;&nbsp;",
                 "sInfoFiltered": "",
-                "sLengthMenu": "Show _MENU_ per page"
+                "sLengthMenu": "Show _MENU_ per page",
+                "sEmptyTable": "Could not find any patient."
+            },
+            tableTools: {
+                "sSwfPath": "/swf/copy_csv_xls_pdf.swf",
+                "aButtons": [
+                    "copy",
+                    "csv"
+                ]
             },
             "iDisplayLength": -1
         });
-        patientDataTable.css("width","50%");
+        patientDataTable.css("width","100%");
+        $("#patient-table_wrapper").addClass("clinical-attr-table");
     };
     
     var patientTableLoaded = false;
@@ -251,20 +259,47 @@
         patientTableLoaded = true;
     }
     
-        $("#link-samples-table").click( function() {
+    var samplesTableLoaded = false;
+    function loadSamplesTable() {
+        if (samplesTableLoaded) return;
+        populateSamplesTable();
+        samplesTableLoaded = true;
+    }
+    
+    $("#link-samples-table").click( function() {
         loadSamplesTable();
-        //loadPatientTable();
+        loadPatientTable();
+
+        $("#load-samples-table").click( function() {
+            $("#patient-table_wrapper").hide();
+            $("#samples-table_wrapper").show();
+            $(this).css("color", "black");
+            $(this).css("font-weight", "bold");
+            $(this).css("cursor", "text");
+            $("#load-patient-table").css("color", "#428bca");
+            $("#load-patient-table").css("cursor", "pointer");
+            $("#load-patient-table").css("font-weight", "normal");
+        });
+        $("#load-samples-table").click();
+        
+        $("#load-patient-table").click( function() {
+            $("#samples-table_wrapper").hide();
+            $("#patient-table_wrapper").show();
+            $(this).css("color", "black");
+            $(this).css("font-weight", "bold");
+            $(this).css("cursor", "text");
+            $("#load-samples-table").css("color", "#428bca");
+            $("#load-samples-table").css("cursor", "pointer");
+            $("#load-samples-table").css("font-weight", "normal");
+        });
     });
 </script>
 
-<h3 style="color: black;">Samples Information</h3>
+<h3 style="color: black;">Clinical Information</h3>
+<a id="load-samples-table" class="table-link activated">Samples</a> / <a id="load-patient-table" class="table-link">Patient</a>
 <table id="samples-table">
 </table>
 <div id="samples_table_wait"><img src="images/ajax-loader.gif"/></div>
-
-<!--
-<h3 style="color: black;">Patient Information</h3>
 <table id="patient-table">
 </table>
 <div id="patient_table_wait"><img src="images/ajax-loader.gif"/></div>
--->
