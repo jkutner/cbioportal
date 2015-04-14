@@ -373,6 +373,7 @@ if (patientViewError!=null) {
     .sample-record-inline {
         display: inline;
         color: #428bca;
+        padding: 0 5px;
     }
     
     #page_wrapper_table {
@@ -896,7 +897,7 @@ function outputClinicalData() {
         //var row = "<tr><td><b>Patient</b></td>";
         //$("#clinical_table").append(row);
 
-        row = "<div style='white-space: nowrap;'><b>Patient&nbsp;<u><a href='"+cbio.util.getLinkToPatientView(cancerStudyId,patientId)+"'>"+patientId+"</a></b></u><a id='more-patient-info'>&nbsp;";
+        row = "<div style='white-space: nowrap;'><b><u><a href='"+cbio.util.getLinkToPatientView(cancerStudyId,patientId)+"'>"+patientId+"</a></b></u><a id='more-patient-info'>&nbsp;";
         var info = [];
         var loc;
         if ("PRIMARY_SITE" in patientInfo) {loc = (" (" + patientInfo["PRIMARY_SITE"] + ")")} else {loc=""};
@@ -904,7 +905,7 @@ function outputClinicalData() {
         var info = info.concat(formatDiseaseInfo(patientInfo));
         var info = info.concat(formatPatientStatus(patientInfo));
         row += info.join(", ");
-        row += "</a> from " + formatCancerStudyInfo()+ "</div>";
+        row += "</a><span style='float: right'>" + formatCancerStudyInfo()+ "</span></div>";
         $("#clinical_div").append(row);
         
         var head_recs = "";
@@ -936,7 +937,8 @@ function outputClinicalData() {
         }
         if (n > nr_in_head) {
             tail_recs = sample_recs;
-            $("#clinical_div").append("<hr style='margin-top: 2px; margin-bottom: 2px;' /><b>Samples&nbsp;</b>" + head_recs + "<b><a id='sample-btn-topbar' style='cursor:pointer'>...</a></b>");
+            var svg_corner = '<svg width="20" height="15" style="top: -10px;"><line x1="10" y1="0" x2="10" y2="10" stroke="gray" stroke-width="2"></line><line x1="10" y1="10" x2="50" y2="10" stroke="gray" stroke-width="2"></line></svg>'
+            $("#clinical_div").append(svg_corner + head_recs + "<b><a id='sample-btn-topbar' style='cursor:pointer'>...</a></b>");
             $("#sample-btn-topbar").qtip({
                 content: {
                     text: "sample_extra_info"
