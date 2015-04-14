@@ -371,7 +371,7 @@ if (patientViewError!=null) {
         text-align: left;
     }
     .sample-record-inline {
-        display: inline;
+        display: inline-block;
         color: #428bca;
         padding: 0 5px;
     }
