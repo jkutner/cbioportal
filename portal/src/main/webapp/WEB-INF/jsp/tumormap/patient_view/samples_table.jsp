@@ -68,35 +68,90 @@
 <style type="text/css">
 @import "css/data_table_jui.css?<%=GlobalProperties.getAppVersion()%>";
 @import "css/data_table_ColVis.css?<%=GlobalProperties.getAppVersion()%>";
-.ColVis {
+#samples-table_wrapper .ColVis {
         float: left;
         margin-bottom: 0
 }
-.dataTables_length {
+#samples-table_wrapper .dataTables_length {
         width: auto;
         float: right;
 }
-.dataTables_info {
+#samples-table_wrapper .dataTables_info {
         clear: none;
         width: auto;
         float: right;
 }
-.dataTables_filter {
+#samples-table_wrapper .dataTables_filter {
         width: 40%;
 }
-.div.datatable-paging {
+#samples-table_wrapper .div.datatable-paging {
         width: auto;
         float: right;
 }
-.data-table-name {
+#samples-table_wrapper .data-table-name {
         float: left;
         font-weight: bold;
         font-size: 120%;
         vertical-align: middle;
 }
+#samples-table_wrapper .ColVis_collection {
+    width: 500px;
+}
+#samples-table_wrapper .ColVis_Button {
+    white-space: nowrap;
+}
+#samples-table_wrapper .ColVis_Button.TableTools_Button.ColVis_MasterButton{
+    outline: none;
+    background-color: white;
+/*    color: #2986e2;
+    border: 1px solid #2986e2;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;*/
+    cursor: pointer;
+    height: 23px;
+    padding: 0;
+}
+#samples-table_wrapper .ColVis_Button.TableTools_Button.ColVis_MasterButton span{
+    padding: 2px 6px 3px 6px;
+}
+#samples-table_wrapper #dataTables_filter {
+    width:auto;
+    float: right;
+}
+#samples-table_wrapper .dataTables_filter label input {
+    appearance: searchfield;
+    -moz-appearance: searchfield;
+    -webkit-appearance: searchfield;
+}
+#samples-table_wrapper table.dataTable>tbody>tr>td {
+    white-space: nowrap;
+}
+#samples-table_wrapper .DTTT_container.ui-buttonset.ui-buttonset-multi a {
+    width: 50px;
+    height: 20px;
+    line-height: 20px;
+}
+#samples-table_wrapper .DTTT_container.ui-buttonset.ui-buttonset-multi {
+    float: left;
+}
 </style>
 <script type="text/javascript" src="js/lib/jquery.highlight-4.js?<%=GlobalProperties.getAppVersion()%>"></script>
 <script type="text/javascript">
+    /* Get attribute to display name mapping */
+    /*
+    var xmlhttp = new XMLHttpRequest();
+    var url = "js/src/patient-view/norm2display.json";
+
+    xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            var myArr = JSON.parse(xmlhttp.responseText);
+            myFunction(myArr);
+        }
+    }
+    xmlhttp.open("GET", url, true);
+    xmlhttp.send();*/
+   
     // Build the table
     var populateSamplesTable = function() {
         $("#samples_table_wait").hide();
@@ -112,20 +167,20 @@
         all_keys = arrayUnique(($.map(clinicalDataMap, function (o) {return Object.keys(o)})));
         clinicalData = all_keys.map(function(k) {
             clicopy = {};
-            clicopy["ATTR"] = k;
+            clicopy["ATTR"] = clinicalAttributes[k]["displayName"];
             Object.keys(clinicalDataMap).forEach(function(k2) {
                clicopy[k2] =  clinicalDataMap[k2][k] || "N/A";
             });
             return clicopy;
         });
         var samplesDataTable = $("#samples-table").dataTable({
-            "sDom": '<"H"T<"sample-table">fr>t<"F">',
+            "bSort": false,
+            "sDom": '<"H"TC<"dataTableReset">f>rt',
             "bJQueryUI": true,
             "bDestroy": true,
             "autoWidth": true,
             "aaData": clinicalData,
-            "aoColumns": [{"sTitle":"ATTR","mData":"ATTR"}].concat(Object.keys(clinicalDataMap).map(function(k){return {"sTitle":k.replace(/_/g, ' '),"mData":k}})),
-            "aaSorting": [[0,'asc']],
+            "aoColumns": [{"sTitle":"Attribute","mData":"ATTR"}].concat(Object.keys(clinicalDataMap).map(function(k){return {"sTitle":k.replace(/_/g, ' '),"mData":k}})),
             "oLanguage": {
                 "sInfo": "&nbsp;&nbsp;(_START_ to _END_ of _TOTAL_)&nbsp;&nbsp;",
                 "sInfoFiltered": "",
@@ -135,7 +190,8 @@
             tableTools: {
                 "sSwfPath": "/swf/copy_csv_xls_pdf.swf",
                 "aButtons": [
-                    "csv",
+                    "copy",
+                    "csv"
                 ]
             },
             "iDisplayLength": -1
@@ -197,7 +253,7 @@
     
         $("#link-samples-table").click( function() {
         loadSamplesTable();
-        loadPatientTable();
+        //loadPatientTable();
     });
 </script>
 
@@ -206,7 +262,9 @@
 </table>
 <div id="samples_table_wait"><img src="images/ajax-loader.gif"/></div>
 
+<!--
 <h3 style="color: black;">Patient Information</h3>
 <table id="patient-table">
 </table>
 <div id="patient_table_wait"><img src="images/ajax-loader.gif"/></div>
+-->

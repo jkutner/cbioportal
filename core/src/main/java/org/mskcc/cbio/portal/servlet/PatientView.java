@@ -102,6 +102,7 @@ public class PatientView extends HttpServlet {
     public static final String DISEASE_INFO = "disease_info";
     public static final String PATIENT_STATUS = "patient_status";
     public static final String CLINICAL_DATA = "clinical_data";
+    public static final String CLINICAL_ATTRIBUTES = "clinical_attributes";
     public static final String TISSUE_IMAGES = "tissue_images";
     public static final String PATH_REPORT_URL = "path_report_url";
     public static final String CLINICAL_ATTRIBUTE_OTHER_PAPTEINT_ID = "OTHER_PATIENT_ID";
@@ -412,8 +413,22 @@ public class PatientView extends HttpServlet {
             attrMap.put(attrId, attrValue);
         }
         request.setAttribute(CLINICAL_DATA, clinicalData);
+	
+	// Add attribute name to display name mapping
+	List<ClinicalAttribute> cas = DaoClinicalAttribute.getDataByStudy(cancerStudyId);
         
         String sampleId = samples.get(0);
+	Map<String,Map<String,String>> clinicalAttributes = new LinkedHashMap<String,Map<String,String>>();
+        for (ClinicalAttribute ca : cas) {
+            String attrId = ca.getAttrId();
+	    String displayName = ca.getDisplayName();
+	    String description = ca.getDescription();
+            Map<String,String> attrMap = new HashMap<String,String>();
+	    clinicalAttributes.put(attrId, attrMap);
+	    attrMap.put("displayName", displayName);
+	    attrMap.put("description", description);
+        }
+	request.setAttribute(CLINICAL_ATTRIBUTES, clinicalAttributes);
         
         request.setAttribute("num_tumors", 1);
         
