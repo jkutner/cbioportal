@@ -583,6 +583,10 @@ function addMoreClinicalTooltip(elem) {
         if (clinicalData.length===0) {
             thisElem.remove();
         } else {
+            var pos = {my:'top right',at:'bottom right',viewport: $(window)};
+            if (thisElem.attr('class') && thisElem.attr('class').indexOf("sample-record ") > -1) {
+                pos = {my:'right center',at:'left center',viewport: $(window)};
+            }
             thisElem.qtip({
                 content: {
                     text: table_text
@@ -596,7 +600,7 @@ function addMoreClinicalTooltip(elem) {
                     show: {event: "mouseover"},
                 hide: {fixed: true, delay: 100, event: "mouseout"},
                 style: { classes: 'qtip-light qtip-rounded qtip-wide' },
-                position: {my:'top right',at:'bottom right',viewport: $(window)}
+                position: pos,
             });
         }
     });
@@ -893,7 +897,7 @@ function outputClinicalData() {
         //var row = "<tr><td><b>Patient</b></td>";
         //$("#clinical_table").append(row);
 
-        row = "<div style='white-space: nowrap;'><b><u><a href='"+cbio.util.getLinkToPatientView(cancerStudyId,patientId)+"'>"+patientId+"</a></b></u><a id='more-patient-info'>&nbsp;";
+        row = "<div style='white-space: nowrap;'><span id='more-patient-info'><b><u><a href='"+cbio.util.getLinkToPatientView(cancerStudyId,patientId)+"'>"+patientId+"</a></b></u><a>&nbsp;";
         var info = [];
         var loc;
         if ("PRIMARY_SITE" in patientInfo) {loc = (" (" + patientInfo["PRIMARY_SITE"] + ")")} else {loc=""};
@@ -901,7 +905,7 @@ function outputClinicalData() {
         var info = info.concat(formatDiseaseInfo(patientInfo));
         var info = info.concat(formatPatientStatus(patientInfo));
         row += info.join(", ");
-        row += "</a><span style='float: right'>" + formatCancerStudyInfo()+ "</span></div>";
+        row += "</a></span><span style='float: right'>" + formatCancerStudyInfo()+ "</span></div>";
         $("#clinical_div").append(row);
         
         var head_recs = "";
