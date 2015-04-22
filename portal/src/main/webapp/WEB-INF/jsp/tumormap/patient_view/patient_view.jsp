@@ -938,14 +938,14 @@ function outputClinicalData() {
         var svg_corner = '<svg width="20" height="15" style="top: -10px;"><line x1="10" y1="0" x2="10" y2="10" stroke="gray" stroke-width="2"></line><line x1="10" y1="10" x2="50" y2="10" stroke="gray" stroke-width="2"></line></svg>';
         if (n > nr_in_head) {
             tail_recs = sample_recs;
-            $("#clinical_div").append(svg_corner + head_recs + "<b><a id='sample-btn-topbar' style='cursor:pointer'>...</a></b>");
+            $("#clinical_div").append(svg_corner + head_recs + "<b><a id='sample-btn-topbar' style='cursor:pointer'>("+(n-nr_in_head)+" more)</a></b>");
             $("#sample-btn-topbar").qtip({
                 content: {
                     text: "sample_extra_info"
                 },
                 events: {
                     render: function(event, api) {
-                        $(this).html(tail_recs + "<b><a id='sample-btn-tail' style='cursor:pointer'>Show all Samples (" + n + " total)</a></b>");
+                        $(this).html(tail_recs + "<b><a id='sample-btn-tail' style='cursor:pointer'>Show all (" + n + " total)</a></b>");
                         $("#sample-btn-tail").click(function () {
                             $("#link-samples-table").click();
                         });
