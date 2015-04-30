@@ -557,7 +557,7 @@
                     label:"Status",
                     display:"circle",
                     class:"timeline-status",
-                    times:formatTimePoints(timelineDataByType["STATUS"])});
+                    times:combineTimePointsByTime(formatTimePoints(sortByDate(timelineDataByType["STATUS"])))});
             }
             
             if ("DIAGNOSTIC" in timelineDataByType) {
