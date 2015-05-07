@@ -37,6 +37,7 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -60,45 +61,20 @@ import org.mskcc.cbio.portal.model.Patient;
  */
 public class ImportTimelineData {
     
-    private ImportTimelineData() {}
-    
-	private static HashMap<String, String[]> parseHeadersFile(String allowedHeadersFile) throws IOException {
-		FileReader reader = new FileReader(allowedHeadersFile);
-		BufferedReader buff = new BufferedReader(reader);
-		HashMap allowedHeaders = new HashMap<String, List<String>>();
-
-		String line;
-		while ((line = buff.readLine()) != null) {
-			allowedHeaders.put(line.split(":")[0], line.split(":")[1].split("\t"));
-		}
-		
-		return allowedHeaders;
-		
+	private static final Map<String, String[]> ALLOWED_HEADERS;
+	static {
+		Map<String, String[]> allowedHeaders = new HashMap<String, String[]>();
+		allowedHeaders.put("DIAGNOSTICS", "PATIENT_ID DIAGNOSTIC_DATE DIAGNOSTIC_TYPE DIAGNOSTIC_TARGET RESULT DIAGNOSTIC_NOTES".split(" "));
+		allowedHeaders.put("STATUS", "PATIENT_ID START_DATE EVENT_TYPE STATUS NOTE".split(" "));
+		allowedHeaders.put("TREATMENT", "PATIENT_ID START_DATE STOP_DATE EVENT_TYPE TREATMENT_TYPE SUBTYPE AGENT NOTE".split(" "));
+		ALLOWED_HEADERS = Collections.unmodifiableMap(allowedHeaders);
 	}
 	
-	private static String[] canonicalizeFieldNames(String[] headers) {
-		if (headers[1].split("_").length == 3) {
-			String study_prefix = headers[1].split("_")[0] + "_";
-			for (String h: headers) {
-				h.replaceFirst("^"+study_prefix, "");
-			}
-		}
-		return headers;
+	private static boolean hasCorrectHeader(String eventCategory, String[] headers) {
+		return Arrays.equals(ALLOWED_HEADERS.get(eventCategory), headers);
 	}
 	
-	private static String determineType(HashMap<String, String[]> allowedHeaders, String[] headers) {
-		headers = canonicalizeFieldNames(headers);
-		for (Iterator it = allowedHeaders.entrySet().iterator(); it.hasNext();) {
-			HashMap.Entry<String, String[]> entry = (HashMap.Entry<String, String[]>) it.next();
-			
-			if (Arrays.equals(headers, entry.getValue())) {
-				return entry.getKey();
-			}
-		}
-		return null;
-	}
-	
-	private static void importData(String dataFile, String allowedHeadersFile, int cancerStudyId) throws IOException, DaoException {
+	private static void importData(String dataFile, String eventCategory, int cancerStudyId) throws IOException, DaoException {
 		MySQLbulkLoader.bulkLoadOn();
 
 		System.out.print("Reading file "+dataFile);
@@ -106,8 +82,8 @@ public class ImportTimelineData {
 		BufferedReader buff = new BufferedReader(reader);
 
 		String line = buff.readLine();
-		HashMap<String, String[]> allowedHeaders = parseHeadersFile(allowedHeadersFile);
 		
+		// Check event category agnostic headers
 		String[] headers = line.split("\t");
 		int indexTypeSpecificField = -1;
 		if (headers[0].equals("PATIENT_ID") && headers[1].equals("START_DATE")) {
@@ -118,13 +94,16 @@ public class ImportTimelineData {
 			}
 		}
 		if (indexTypeSpecificField == -1) {
-		    throw new RuntimeException("The first line must start with 'PATIENT_ID\tSTART_DATE\tEVENT_TYPE' or"
-			    + "PATIENT_ID\tSTART_DATE\tSTOP_DATE\tEVENT_TYPE");
+		    throw new RuntimeException("The first line must start with\n'PATIENT_ID\tSTART_DATE\tEVENT_TYPE'\nor\n"
+			    + "\nPATIENT_ID\tSTART_DATE\tSTOP_DATE\tEVENT_TYPE");
 		}
 		
-		String dataType = determineType(allowedHeaders, headers);
-		if (dataType == null) {
-			throw new RuntimeException("Headers of "+dataFile+" do not correspond with any type defined in "+allowedHeadersFile);
+		// Check headers based on event category
+		if (!hasCorrectHeader(eventCategory, headers)) {
+			throw new RuntimeException("Headers\n"
+				+ String.join("\t", headers)
+				+ "\nof " + dataFile + " do not correspond with headers\n"
+				+ String.join("\t", ALLOWED_HEADERS.get(eventCategory)));
 		}
 
 		long clinicalEventId = DaoClinicalEvent.getLargestClinicalEventId();
@@ -167,10 +146,9 @@ public class ImportTimelineData {
 	public static void main(String[] args) throws Exception {
 		args = new String[] {"--data","/Users/debruiji/hg/cbio-portal-data/msk-impact/caises/data_timeline_treatment_caisis_gbm.txt",
 		    "--meta","/Users/debruiji/hg/cbio-portal-data/msk-impact/meta_timeline_test.txt",
-		    "--headers","/Users/debruiji/hg/cbio-portal-data/data_timeline_headers.txt",
 		    "--loadMode", "bulkLoad"};
-		if (args.length < 6) {
-		    System.out.println("command line usage:  importTimelineData --data <data_clinical_events.txt> --meta <meta_clinical_events.txt> --headers <allowed_headers.txt>");
+		if (args.length < 4) {
+		    System.out.println("command line usage:  importTimelineData --data <data_clinical_events.txt> --meta <meta_clinical_events.txt>");
 		    return;
 		}
 
@@ -179,8 +157,6 @@ public class ImportTimelineData {
 		       "clinial events data file" ).withRequiredArg().describedAs( "data_clinical_events.txt" ).ofType( String.class );
 	       OptionSpec<String> meta = parser.accepts( "meta",
 		       "meta (description) file" ).withRequiredArg().describedAs( "meta_clinical_events.txt" ).ofType( String.class );
-	       OptionSpec<String> headers = parser.accepts( "headers",
-		       "allowed headers file" ).withRequiredArg().describedAs( "data_timeline_headers.txt" ).ofType( String.class );
 	       parser.acceptsAll(Arrays.asList("dbmsAction", "loadMode"));
 	       OptionSet options = null;
 	      try {
@@ -200,15 +176,8 @@ public class ImportTimelineData {
 	       String descriptorFile = null;
 	       if( options.has( meta ) ){
 		  descriptorFile = options.valueOf( meta );
-	       }else{
+	       }else {
 		   throw new Exception( "'meta' argument required.");
-	       }
-	       
-	       String allowedHeadersFile = null;
-	       if( options.has( headers ) ){
-		  allowedHeadersFile = options.valueOf( headers );
-	       } else {
-		   throw new Exception( "'headers' argument required.");
 	       }
 
 		Properties properties = new Properties();
@@ -222,7 +191,7 @@ public class ImportTimelineData {
 		//int cancerStudyId = cancerStudy.getInternalId();
 		//DaoClinicalEvent.deleteByCancerStudyId(cancerStudyId);
 
-		importData(dataFile, allowedHeadersFile, cancerStudy.getInternalId());
+		importData(dataFile, properties.getProperty("event_category"), cancerStudy.getInternalId());
 
 		System.out.println("Done!");
 	}
