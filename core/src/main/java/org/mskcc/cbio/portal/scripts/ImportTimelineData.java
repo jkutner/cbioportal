@@ -38,6 +38,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import joptsimple.OptionException;
@@ -54,114 +56,174 @@ import org.mskcc.cbio.portal.model.ClinicalEvent;
 import org.mskcc.cbio.portal.model.Patient;
 /**
  *
- * @author jgao
+ * @author jgao, inodb
  */
 public class ImportTimelineData {
     
     private ImportTimelineData() {}
     
-    public static void main(String[] args) throws Exception {
-//        args = new String[] {"--data","/Users/jgao/projects/cbio-portal-data/impact/mixed/dmp/MSK-IMPACT/2014/data_clinical_events.txt",
-//            "--meta","/Users/jgao/projects/cbio-portal-data/impact/mixed/dmp/MSK-IMPACT/2014/meta_clinical_events.txt",
-//            "--loadMode", "bulkLoad"};
-        if (args.length < 4) {
-            System.out.println("command line usage:  importTimelineData --data <data_clinical_events.txt> --meta <meta_clinical_events.txt>");
-            return;
-        }
-        
-       OptionParser parser = new OptionParser();
-       OptionSpec<String> data = parser.accepts( "data",
-               "clinial events data file" ).withRequiredArg().describedAs( "data_clinical_events.txt" ).ofType( String.class );
-       OptionSpec<String> meta = parser.accepts( "meta",
-               "meta (description) file" ).withRequiredArg().describedAs( "meta_clinical_events.txt" ).ofType( String.class );
-       parser.acceptsAll(Arrays.asList("dbmsAction", "loadMode"));
-       OptionSet options = null;
-      try {
-         options = parser.parse( args );
-         //exitJVM = !options.has(returnFromMain);
-      } catch (OptionException e) {
-          e.printStackTrace();
-      }
-       
-       String dataFile = null;
-       if( options.has( data ) ){
-          dataFile = options.valueOf( data );
-       }else{
-           throw new Exception( "'data' argument required.");
-       }
+	private static HashMap<String, String[]> parseHeadersFile(String allowedHeadersFile) throws IOException {
+		FileReader reader = new FileReader(allowedHeadersFile);
+		BufferedReader buff = new BufferedReader(reader);
+		HashMap allowedHeaders = new HashMap<String, List<String>>();
 
-       String descriptorFile = null;
-       if( options.has( meta ) ){
-          descriptorFile = options.valueOf( meta );
-       }else{
-           throw new Exception( "'meta' argument required.");
-       }
-        
-        Properties properties = new Properties();
-        properties.load(new FileInputStream(descriptorFile));
-      
-        CancerStudy cancerStudy = DaoCancerStudy.getCancerStudyByStableId(properties.getProperty("cancer_study_identifier"));
-        if (cancerStudy == null) {
-            throw new Exception("Unknown cancer study: " + properties.getProperty("cancer_study_identifier"));
-        }
-        
-        //int cancerStudyId = cancerStudy.getInternalId();
-        //DaoClinicalEvent.deleteByCancerStudyId(cancerStudyId);
-        
-        importData(dataFile, cancerStudy.getInternalId());
+		String line;
+		while ((line = buff.readLine()) != null) {
+			allowedHeaders.put(line.split(":")[0], line.split(":")[1].split("\t"));
+		}
+		
+		return allowedHeaders;
+		
+	}
+	
+	private static String[] canonicalizeFieldNames(String[] headers) {
+		if (headers[1].split("_").length == 3) {
+			String study_prefix = headers[1].split("_")[0] + "_";
+			for (String h: headers) {
+				h.replaceFirst("^"+study_prefix, "");
+			}
+		}
+		return headers;
+	}
+	
+	private static String determineType(HashMap<String, String[]> allowedHeaders, String[] headers) {
+		headers = canonicalizeFieldNames(headers);
+		for (Iterator it = allowedHeaders.entrySet().iterator(); it.hasNext();) {
+			HashMap.Entry<String, String[]> entry = (HashMap.Entry<String, String[]>) it.next();
+			
+			if (Arrays.equals(headers, entry.getValue())) {
+				return entry.getKey();
+			}
+		}
+		return null;
+	}
+	
+	private static void importData(String dataFile, String allowedHeadersFile, int cancerStudyId) throws IOException, DaoException {
+		MySQLbulkLoader.bulkLoadOn();
 
-        System.out.println("Done!");
-    }
-    
-    private static void importData(String dataFile, int cancerStudyId) throws IOException, DaoException {
-        MySQLbulkLoader.bulkLoadOn();
-        
-        System.out.print("Reading file "+dataFile);
-        FileReader reader =  new FileReader(dataFile);
-        BufferedReader buff = new BufferedReader(reader);
+		System.out.print("Reading file "+dataFile);
+		FileReader reader =  new FileReader(dataFile);
+		BufferedReader buff = new BufferedReader(reader);
 
-        String line = buff.readLine();
-        if (!line.startsWith("PATIENT_ID\tSTART_DATE\tSTOP_DATE\tEVENT_TYPE")) {
-            throw new RuntimeException("The first line must start with 'PATIENT_ID\tSTART_DATE\tSTOP_DATE\tEVENT_TYPE'");
-        }
-        String[] headers = line.split("\t");
+		String line = buff.readLine();
+		HashMap<String, String[]> allowedHeaders = parseHeadersFile(allowedHeadersFile);
+		
+		String[] headers = line.split("\t");
+		int indexTypeSpecificField = -1;
+		if (headers[0].equals("PATIENT_ID") && headers[1].equals("START_DATE")) {
+			if ("STOP_DATE".equals(headers[2]) && "EVENT_TYPE".equals(headers[3])) {
+				indexTypeSpecificField = 4;
+			} else if (headers[2] == "EVENT_TYPE") {
+				indexTypeSpecificField = 3;
+			}
+		}
+		if (indexTypeSpecificField == -1) {
+		    throw new RuntimeException("The first line must start with 'PATIENT_ID\tSTART_DATE\tEVENT_TYPE' or"
+			    + "PATIENT_ID\tSTART_DATE\tSTOP_DATE\tEVENT_TYPE");
+		}
+		
+		String dataType = determineType(allowedHeaders, headers);
+		if (dataType == null) {
+			throw new RuntimeException("Headers of "+dataFile+" do not correspond with any type defined in "+allowedHeadersFile);
+		}
 
-        long clinicalEventId = DaoClinicalEvent.getLargestClinicalEventId();
-        
-        while ((line = buff.readLine()) != null) {
-            line = line.trim();
+		long clinicalEventId = DaoClinicalEvent.getLargestClinicalEventId();
 
-            String[] fields = line.split("\t");
-            if (fields.length > headers.length) {
-                System.err.println("more attributes than header: "+line);
-                continue;
-            }
-            
-            Patient patient = DaoPatient.getPatientByCancerStudyAndPatientId(cancerStudyId, fields[0]);
-            if (patient == null) {
-              continue;
-            }
-            ClinicalEvent event = new ClinicalEvent();
-            event.setClinicalEventId(++clinicalEventId);
-            event.setPatientId(patient.getInternalId());
-            event.setStartDate(Long.valueOf(fields[1]));
-            if (!fields[2].isEmpty()) {
-                event.setStopDate(Long.valueOf(fields[2]));
-            }
-            event.setEventType(fields[3]);
-            
-            Map<String, String> eventData = new HashMap<String, String>();
-            for (int i = 4; i < fields.length; i++) {
-                if (!fields[i].isEmpty()) {
-                    eventData.put(headers[i], fields[i]);
-                }
-            }
-            event.setEventData(eventData);
-            
-            DaoClinicalEvent.addClinicalEvent(event);
-        }
-        
-        MySQLbulkLoader.flushAll();
-    }
-    
+		while ((line = buff.readLine()) != null) {
+		    line = line.trim();
+
+		    String[] fields = line.split("\t");
+		    if (fields.length > headers.length) {
+			System.err.println("more attributes than header: "+line);
+			continue;
+		    }
+
+		    Patient patient = DaoPatient.getPatientByCancerStudyAndPatientId(cancerStudyId, fields[0]);
+		    if (patient == null) {
+		      continue;
+		    }
+		    ClinicalEvent event = new ClinicalEvent();
+		    event.setClinicalEventId(++clinicalEventId);
+		    event.setPatientId(patient.getInternalId());
+		    event.setStartDate(Long.valueOf(fields[1]));
+		    if (indexTypeSpecificField != 3 && !fields[2].isEmpty()) {
+			event.setStopDate(Long.valueOf(fields[2]));
+		    }
+		    event.setEventType(fields[indexTypeSpecificField-1]);
+		    Map<String, String> eventData = new HashMap<String, String>();
+		    for (int i = indexTypeSpecificField; i < fields.length; i++) {
+			if (!fields[i].isEmpty()) {
+			    eventData.put(headers[i], fields[i]);
+			}
+		    }
+		    event.setEventData(eventData);
+
+		    DaoClinicalEvent.addClinicalEvent(event);
+		}
+
+		MySQLbulkLoader.flushAll();
+	}
+	
+	public static void main(String[] args) throws Exception {
+		args = new String[] {"--data","/Users/debruiji/hg/cbio-portal-data/msk-impact/caises/data_timeline_treatment_caisis_gbm.txt",
+		    "--meta","/Users/debruiji/hg/cbio-portal-data/msk-impact/meta_timeline_test.txt",
+		    "--headers","/Users/debruiji/hg/cbio-portal-data/data_timeline_headers.txt",
+		    "--loadMode", "bulkLoad"};
+		if (args.length < 6) {
+		    System.out.println("command line usage:  importTimelineData --data <data_clinical_events.txt> --meta <meta_clinical_events.txt> --headers <allowed_headers.txt>");
+		    return;
+		}
+
+	       OptionParser parser = new OptionParser();
+	       OptionSpec<String> data = parser.accepts( "data",
+		       "clinial events data file" ).withRequiredArg().describedAs( "data_clinical_events.txt" ).ofType( String.class );
+	       OptionSpec<String> meta = parser.accepts( "meta",
+		       "meta (description) file" ).withRequiredArg().describedAs( "meta_clinical_events.txt" ).ofType( String.class );
+	       OptionSpec<String> headers = parser.accepts( "headers",
+		       "allowed headers file" ).withRequiredArg().describedAs( "data_timeline_headers.txt" ).ofType( String.class );
+	       parser.acceptsAll(Arrays.asList("dbmsAction", "loadMode"));
+	       OptionSet options = null;
+	      try {
+		 options = parser.parse( args );
+		 //exitJVM = !options.has(returnFromMain);
+	      } catch (OptionException e) {
+		  e.printStackTrace();
+	      }
+
+	       String dataFile = null;
+	       if( options.has( data ) ){
+		  dataFile = options.valueOf( data );
+	       } else {
+		   throw new Exception( "'data' argument required.");
+	       }
+
+	       String descriptorFile = null;
+	       if( options.has( meta ) ){
+		  descriptorFile = options.valueOf( meta );
+	       }else{
+		   throw new Exception( "'meta' argument required.");
+	       }
+	       
+	       String allowedHeadersFile = null;
+	       if( options.has( headers ) ){
+		  allowedHeadersFile = options.valueOf( headers );
+	       } else {
+		   throw new Exception( "'headers' argument required.");
+	       }
+
+		Properties properties = new Properties();
+		properties.load(new FileInputStream(descriptorFile));
+
+		CancerStudy cancerStudy = DaoCancerStudy.getCancerStudyByStableId(properties.getProperty("cancer_study_identifier"));
+		if (cancerStudy == null) {
+		    throw new Exception("Unknown cancer study: " + properties.getProperty("cancer_study_identifier"));
+		}
+
+		//int cancerStudyId = cancerStudy.getInternalId();
+		//DaoClinicalEvent.deleteByCancerStudyId(cancerStudyId);
+
+		importData(dataFile, allowedHeadersFile, cancerStudy.getInternalId());
+
+		System.out.println("Done!");
+	}
 }
