@@ -64,20 +64,24 @@ public class ImportTimelineData {
 	private static final Map<String, String[]> ALLOWED_HEADERS;
 	static {
 		Map<String, String[]> allowedHeaders = new HashMap<String, String[]>();
-		allowedHeaders.put("DIAGNOSTICS", "PATIENT_ID DIAGNOSTIC_DATE DIAGNOSTIC_TYPE DIAGNOSTIC_TARGET RESULT DIAGNOSTIC_NOTES".split(" "));
+		allowedHeaders.put("DIAGNOSTICS", "PATIENT_ID START_DATE EVENT_TYPE DIAGNOSTIC_TYPE DIAGNOSTIC_TARGET RESULT NOTES".split(" "));
 		allowedHeaders.put("STATUS", "PATIENT_ID START_DATE EVENT_TYPE STATUS NOTE".split(" "));
 		allowedHeaders.put("TREATMENT", "PATIENT_ID START_DATE STOP_DATE EVENT_TYPE TREATMENT_TYPE SUBTYPE AGENT NOTE".split(" "));
 		ALLOWED_HEADERS = Collections.unmodifiableMap(allowedHeaders);
 	}
 	
-	private static boolean hasCorrectHeader(String eventCategory, String[] headers) {
-		return Arrays.equals(ALLOWED_HEADERS.get(eventCategory), headers);
+	private static boolean isCorrectEventType(String eventType) {
+		return ALLOWED_HEADERS.containsKey(eventType);
 	}
 	
-	private static void importData(String dataFile, String eventCategory, int cancerStudyId) throws IOException, DaoException {
+	private static boolean isCorrectHeader(String eventType, String[] headers) {
+		return Arrays.equals(ALLOWED_HEADERS.get(eventType), headers);
+	}
+	
+	private static void importData(String dataFile, String eventType, int cancerStudyId) throws IOException, DaoException {
 		MySQLbulkLoader.bulkLoadOn();
 
-		System.out.print("Reading file "+dataFile);
+		System.out.print("Reading file "+dataFile+"\n");
 		FileReader reader =  new FileReader(dataFile);
 		BufferedReader buff = new BufferedReader(reader);
 
@@ -85,25 +89,30 @@ public class ImportTimelineData {
 		
 		// Check event category agnostic headers
 		String[] headers = line.split("\t");
-		int indexTypeSpecificField = -1;
+		int indexCategorySpecificField = -1;
 		if (headers[0].equals("PATIENT_ID") && headers[1].equals("START_DATE")) {
 			if ("STOP_DATE".equals(headers[2]) && "EVENT_TYPE".equals(headers[3])) {
-				indexTypeSpecificField = 4;
-			} else if (headers[2] == "EVENT_TYPE") {
-				indexTypeSpecificField = 3;
+				indexCategorySpecificField = 4;
+			} else if (headers[2].equals("EVENT_TYPE")) {
+				indexCategorySpecificField = 3;
 			}
 		}
-		if (indexTypeSpecificField == -1) {
+		if (indexCategorySpecificField == -1) {
 		    throw new RuntimeException("The first line must start with\n'PATIENT_ID\tSTART_DATE\tEVENT_TYPE'\nor\n"
-			    + "\nPATIENT_ID\tSTART_DATE\tSTOP_DATE\tEVENT_TYPE");
+			    + "PATIENT_ID\tSTART_DATE\tSTOP_DATE\tEVENT_TYPE");
 		}
 		
+		if (!isCorrectEventType(eventType)) {
+			throw new RuntimeException("eventType " + eventType
+				+ " is not a valid eventType. Should be one of: \n"
+				+ String.join("\t", ALLOWED_HEADERS.keySet()));
+		}
 		// Check headers based on event category
-		if (!hasCorrectHeader(eventCategory, headers)) {
+		if (!isCorrectHeader(eventType, headers)) {
 			throw new RuntimeException("Headers\n"
 				+ String.join("\t", headers)
 				+ "\nof " + dataFile + " do not correspond with headers\n"
-				+ String.join("\t", ALLOWED_HEADERS.get(eventCategory)));
+				+ String.join("\t", ALLOWED_HEADERS.get(eventType)));
 		}
 
 		long clinicalEventId = DaoClinicalEvent.getLargestClinicalEventId();
@@ -125,12 +134,12 @@ public class ImportTimelineData {
 		    event.setClinicalEventId(++clinicalEventId);
 		    event.setPatientId(patient.getInternalId());
 		    event.setStartDate(Long.valueOf(fields[1]));
-		    if (indexTypeSpecificField != 3 && !fields[2].isEmpty()) {
+		    if (indexCategorySpecificField != 3 && !fields[2].isEmpty()) {
 			event.setStopDate(Long.valueOf(fields[2]));
 		    }
-		    event.setEventType(fields[indexTypeSpecificField-1]);
+		    event.setEventType(fields[indexCategorySpecificField-1]);
 		    Map<String, String> eventData = new HashMap<String, String>();
-		    for (int i = indexTypeSpecificField; i < fields.length; i++) {
+		    for (int i = indexCategorySpecificField; i < fields.length; i++) {
 			if (!fields[i].isEmpty()) {
 			    eventData.put(headers[i], fields[i]);
 			}
@@ -144,9 +153,9 @@ public class ImportTimelineData {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		args = new String[] {"--data","/Users/debruiji/hg/cbio-portal-data/msk-impact/caises/data_timeline_treatment_caisis_gbm.txt",
-		    "--meta","/Users/debruiji/hg/cbio-portal-data/msk-impact/meta_timeline_test.txt",
-		    "--loadMode", "bulkLoad"};
+		//args = new String[] {"--data","/Users/debruiji/hg/cbio-portal-data/msk-impact/caisis/data_timeline_status_caisis_gbm.txt",
+		//   "--meta","/Users/debruiji/hg/cbio-portal-data/msk-impact/caisis/meta_timeline_status_caisis_gbm_test.txt",
+		//    "--loadMode", "bulkLoad"};
 		if (args.length < 4) {
 		    System.out.println("command line usage:  importTimelineData --data <data_clinical_events.txt> --meta <meta_clinical_events.txt>");
 		    return;
@@ -191,7 +200,7 @@ public class ImportTimelineData {
 		//int cancerStudyId = cancerStudy.getInternalId();
 		//DaoClinicalEvent.deleteByCancerStudyId(cancerStudyId);
 
-		importData(dataFile, properties.getProperty("event_category"), cancerStudy.getInternalId());
+		importData(dataFile, properties.getProperty("event_type"), cancerStudy.getInternalId());
 
 		System.out.println("Done!");
 	}
