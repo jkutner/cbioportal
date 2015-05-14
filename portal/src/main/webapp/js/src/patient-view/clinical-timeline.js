@@ -457,7 +457,7 @@
             var dates = getStartStopDates(timePointData);
             
             var tooltip = [];
-            tooltip.push("<td>date</td><td>"+dates[0]+(dates[1]===dates[0]?"":" - "+dates[1])+"</td>");
+            tooltip.push("<td>date</td><td>"+dates[0]+(dates[1]===dates[0]?"":" - "+dates[1]+" ("+(dates[1]-dates[0])+" days)")+"</td>");
             if ("eventData" in timePointData) {
                 var eventData = timePointData["eventData"];
                 for (var key in eventData) {
@@ -557,7 +557,7 @@
                     label:"Status",
                     display:"circle",
                     class:"timeline-status",
-                    times:formatTimePoints(timelineDataByType["STATUS"])});
+                    times:combineTimePointsByTime(formatTimePoints(sortByDate(timelineDataByType["STATUS"])))});
             }
             
             if ("DIAGNOSTIC" in timelineDataByType) {
