@@ -61,24 +61,6 @@ import org.mskcc.cbio.portal.model.Patient;
  * @author jgao, inodb
  */
 public class ImportTimelineData {
-    
-	private static final Map<String, String[]> ALLOWED_HEADERS;
-	static {
-		Map<String, String[]> allowedHeaders = new HashMap<String, String[]>();
-		allowedHeaders.put("DIAGNOSTICS", "PATIENT_ID START_DATE EVENT_TYPE DIAGNOSTIC_TYPE DIAGNOSTIC_TARGET RESULT NOTES".split(" "));
-		allowedHeaders.put("STATUS", "PATIENT_ID START_DATE EVENT_TYPE STATUS NOTE".split(" "));
-		allowedHeaders.put("TREATMENT", "PATIENT_ID START_DATE STOP_DATE EVENT_TYPE TREATMENT_TYPE SUBTYPE AGENT NOTE".split(" "));
-		allowedHeaders.put("SPECIMEN", "PATIENT_ID START_DATE EVENT_TYPE SPECIMEN_REFERENCE_NUMBER SPECIMEN_SITE SPECIMEN_TYPE NOTE".split(" "));
-		ALLOWED_HEADERS = Collections.unmodifiableMap(allowedHeaders);
-	}
-	
-	private static boolean isCorrectEventType(String eventType) {
-		return ALLOWED_HEADERS.containsKey(eventType);
-	}
-	
-	private static boolean isCorrectHeader(String eventType, String[] headers) {
-		return Arrays.equals(ALLOWED_HEADERS.get(eventType), headers);
-	}
 	
 	private static void importData(String dataFile, String eventType, int cancerStudyId) throws IOException, DaoException {
 		MySQLbulkLoader.bulkLoadOn();
@@ -102,19 +84,6 @@ public class ImportTimelineData {
 		if (indexCategorySpecificField == -1) {
 		    throw new RuntimeException("The first line must start with\n'PATIENT_ID\tSTART_DATE\tEVENT_TYPE'\nor\n"
 			    + "PATIENT_ID\tSTART_DATE\tSTOP_DATE\tEVENT_TYPE");
-		}
-		
-		if (!isCorrectEventType(eventType)) {
-			throw new RuntimeException("eventType " + eventType
-				+ " is not a valid eventType. Should be one of: \n"
-				+ StringUtils.join(ALLOWED_HEADERS.keySet(), "\t"));
-		}
-		// Check headers based on event category
-		if (!isCorrectHeader(eventType, headers)) {
-			throw new RuntimeException("Headers\n"
-				+ StringUtils.join(headers, "\t")
-				+ "\nof " + dataFile + " do not correspond with headers\n"
-				+ StringUtils.join(ALLOWED_HEADERS.get(eventType), "\t"));
 		}
 
 		long clinicalEventId = DaoClinicalEvent.getLargestClinicalEventId();
