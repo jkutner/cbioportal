@@ -473,7 +473,7 @@
                 tooltip : "<table class='timeline-tooltip-table uninitialized'><thead><tr><th>&nbsp;</th><th>&nbsp;</th></tr></thead><tr>" + tooltip.join("</tr><tr>") + "</tr></table>"
             };
             
-            var su2cSampleId = timePointData["eventData"]["SpecimenReferenceNumber"];
+            var su2cSampleId = timePointData["eventData"]["SPECIMEN_REFERENCE_NUMBER"];
             
             if (su2cSampleId) 
                 ret['class'] = 'timeline-'+su2cSampleId;
@@ -540,8 +540,8 @@
             var ret = [];
             
             if ("SPECIMEN" in timelineDataByType) {
-                var specimens = filter(timelineDataByType["SPECIMEN"],"SpecimenType","TISSUE");
-                var eventGroups = separateEvents(sortByDate(specimens), "SpecimenPreservationType");
+                var specimens = filter(timelineDataByType["SPECIMEN"],"SPECIMEN_TYPE","TISSUE");
+                var eventGroups = separateEvents(sortByDate(specimens), "SPECIMEN_PRESERVATION_TYPE");
                 for (var type in eventGroups) {
                     var label = type&&type!=="undefined"?type:"Specimen";
                     ret.push({
