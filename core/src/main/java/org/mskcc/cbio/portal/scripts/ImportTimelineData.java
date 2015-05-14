@@ -47,6 +47,7 @@ import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.commons.lang.StringUtils;
 import org.mskcc.cbio.portal.dao.DaoCancerStudy;
 import org.mskcc.cbio.portal.dao.DaoClinicalEvent;
 import org.mskcc.cbio.portal.dao.DaoException;
@@ -106,14 +107,14 @@ public class ImportTimelineData {
 		if (!isCorrectEventType(eventType)) {
 			throw new RuntimeException("eventType " + eventType
 				+ " is not a valid eventType. Should be one of: \n"
-				+ String.join("\t", ALLOWED_HEADERS.keySet()));
+				+ StringUtils.join(ALLOWED_HEADERS.keySet(), "\t"));
 		}
 		// Check headers based on event category
 		if (!isCorrectHeader(eventType, headers)) {
 			throw new RuntimeException("Headers\n"
-				+ String.join("\t", headers)
+				+ StringUtils.join(headers, "\t")
 				+ "\nof " + dataFile + " do not correspond with headers\n"
-				+ String.join("\t", ALLOWED_HEADERS.get(eventType)));
+				+ StringUtils.join(ALLOWED_HEADERS.get(eventType), "\t"));
 		}
 
 		long clinicalEventId = DaoClinicalEvent.getLargestClinicalEventId();
